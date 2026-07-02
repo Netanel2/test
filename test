@@ -30,3 +30,7 @@ public void Main()
 
 אבל חשוב שתדע מגבלה מהותית: זה יעבוד רק כשאתה מריץ את החבילה אינטראקטיבית מ-Visual Studio/SSDT על המחשב שלך. אם החבילה תרוץ מ-SQL Agent או מהקטלוג על השרת — היא רצה תחת חשבון שירות בלי session גרפי, אז הדפדפן לא ייפתח (או ייפתח על השרת בלי שאף אחד יראה אותו). בסביבה כמו שלך זה כנראה גם ייחסם על ידי מדיניות.
 אז זה מגניב כניסוי/בדיקה מקומית, אבל אם יש מאחורי זה צורך אמיתי — למשל למשוך תוצאות חיפוש לתוך טבלה — הכיוון הנכון ב-SSIS זה HttpWebRequest/WebClient בתוך ה-Script Task (או Web Service Task) ולא פתיחת דפדפן. מה אתה בעצם מנסה להשיג עם זה?
+
+
+Severity	Code	Description	Project	File	Line	Suppression State
+Error	CS8370	Feature 'top-level statements' is not available in C# 7.3. Please use language version 9.0 or greater.	ST_ae33f964e57a479eadde530e793324bf	C:\Users\netanelma\AppData\Local\Temp\Vsta\SSIS_ST120\VstaUKjVI8MAJkiYPNm4BR8HkQ\VstaZska_J34c0WkjspiQCPOGA\ScriptMain.cs	5	Active
