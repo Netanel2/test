@@ -1,2 +1,571 @@
-Severity	Code	Description	Project	File	Line	Suppression State
-Error	CS0234	The type or namespace name 'Dts' does not exist in the namespace 'Microsoft.SqlServer' (are you missing an assembly reference?)	ConsoleApp4	C:\Users\netanelma\source\repos\ConsoleApp4\ConsoleApp4\Program.cs	10	Active
+<div id="treeview" language="javascript" style="background-color: rgb(255, 255, 255);"><table id="Root" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1">
+<tbody><tr id="NodeRow" style="display: none;">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">-</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden" style="">
+		</div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: table-row;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"><table id="1002_1.1" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.1">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: highlight;" title=" ישויות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden" style="background-color: highlight; color: white;">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/AGENT.PNG" id="-3" style="background-color: highlight; color: white; visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: highlight; color: white;">ישויות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.2" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.2">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ניהול תיק ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">ניהול תיק</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.3" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.3">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" גורמים מתפעלים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">גורמים מתפעלים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.4" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.4">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" חיול ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">חיול</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.5" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.5">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" הסכמי הטבות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">הסכמי הטבות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.6" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.6">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ניהול כספים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">ניהול כספים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.7" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.7">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ניהול רשימות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-style: normal; font-weight: bold;">ניהול רשימות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.8" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.8">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ניהול החזרים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0); font-style: normal; font-weight: bold;">ניהול החזרים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.9" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.9">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" חובות מעסיקים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">חובות מעסיקים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.10" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.10">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תביעות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תביעות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.11" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.11">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" עמלות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">עמלות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.12" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.12">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" הנהלת חשבונות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">הנהלת חשבונות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.13" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.13">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" אירועי מסלקה ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">אירועי מסלקה</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.14" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.14">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" סריקת מסמכים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">סריקת מסמכים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.15" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.15">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ראיית עמית ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">ראיית עמית</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.16" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.16">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" קיבוצים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">קיבוצים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.17" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.17">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" שאילתות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">שאילתות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.18" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.18">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" מכתבים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">מכתבים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.19" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.19">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תהליכים - הפעלה ובקרה ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תהליכים - הפעלה ובקרה</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.20" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.20">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תוצאות עיבודים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תוצאות עיבודים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.21" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.21">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ממשקים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">ממשקים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.22" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.22">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" דוחות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">דוחות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.23" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.23">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תוכניות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תוכניות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.24" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.24">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" מוצרים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">מוצרים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.25" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.25">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" משפחות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">משפחות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.26" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.26">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" הפקת מכתב ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">הפקת מכתב</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.27" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.27">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" טבלאות מערכת ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">טבלאות מערכת</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.28" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.28">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" חוקים עסקיים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">חוקים עסקיים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.29" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.29">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תעריפים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תעריפים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.30" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.30">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תשתיות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תשתיות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.31" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.31">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" דוחות לחבר - חדש זמני ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">דוחות לחבר - חדש זמני</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.32" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.32">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" טיוב ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">טיוב</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.33" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.33">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תהליכים פעילים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/ACTIVEPROC.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תהליכים פעילים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.34" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.34">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUSLESS" id="PlusMinus" onclick="return fClickPM(this)"><font class="DisPMFont"></font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" ממשק הפעלת תהליכים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">ממשק הפעלת תהליכים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.35" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.35">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" תקנות התשלומים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">תקנות התשלומים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.36" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.36">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" מערכת השאילתות ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">מערכת השאילתות</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table><table id="1002_1.37" cellpadding="0px" cellspacing="0px" border="0px" bordercolor="white" tabindex="-1" name="1002_1.37">
+<tbody><tr id="NodeRow">
+	<td align="center" nowrap="NoWrap">
+	<div class="PLUSMINUS" id="PlusMinus" onclick="return fClickPM(this)"><font class="PMFont">+</font></div>
+	</td>
+	<td nowrap="NoWrap" onclick="return fNodeClick(this)">
+		<div nowrap="" id="NodeCnt" class="NodeCNT" ondblclick="return fDblclick(this)" style="background-color: rgb(255, 255, 255);" title=" בקרת תהליכים ">
+		<input readonly="" id="SS" type="text" owner="tree" class="ESCROLL" value=" " onfocus="return ESLKeydown()" onkeydown="return ESLKeydown()" name="SS" tabindex="-1" island_form_infra_field_type="UNKNOWN" island_field_signature="text|SS|SS|||parsed|0|hidden">
+		<img class="IIMAGE" align="middle" src="/sapweb/DB/LPLP/eObjects/DIR.PNG" id="-3" style="background-color: rgb(255, 255, 255); color: rgb(0, 0, 255); visibility: visible;"><div id="-1" class="ITEXT" style="visibility: visible; font-family: Arial; font-size: 12px; background-color: rgb(255, 255, 255); color: rgb(0, 0, 0);">בקרת תהליכים</div></div>
+	</td>
+</tr>
+<tr id="ChildRows" style="display: none;">
+	<td nowrap="NoWrap"></td>
+	<td nowrap="NoWrap"></td>
+</tr>
+</tbody></table></td>
+</tr>
+</tbody></table></div>
