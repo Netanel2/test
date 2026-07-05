@@ -10,10 +10,9 @@ namespace ST_bb25f8172821441a9a8074e199874c50
     [Microsoft.SqlServer.Dts.Tasks.ScriptTask.SSISScriptTaskEntryPointAttribute]
     public partial class ScriptMain : Microsoft.SqlServer.Dts.Tasks.ScriptTask.VSTARTScriptObjectModelBase
     {
-        // 🛑 טיפ: אם החיבור נכשל, החלף את המילה "home" בכתובת ה-IP המלאה של השרת
         private readonly string connStrForJobs = "Data Source=PSRS;Initial Catalog=msdb;Integrated Security=SSPI;";
-        private readonly string connStrForBI = "Data Source=home;Initial Catalog=msdb;User ID=GIDIA;Password=ASas123456#;";
-        private readonly string connStrForWebSites = "Data Source=172.16.8.16;Initial Catalog=msdb;User ID=automic;Password=znt-3MO.Bi6Av#b3;";
+        private readonly string connStrForBI = "Data Source=home;Initial Catalog=msdb;User ID=USER;Password=PASSWORD;";
+        private readonly string connStrForWebSites = "Data Source=172.16.8.16;Initial Catalog=msdb;User ID=USER;Password=PASSWORD;";
 
         public void Main()
         {
@@ -26,24 +25,45 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 Dictionary<int, string> jobResults = GetJobHistory(yesterday);
 
                 string res3 = CheckIfFolderHasFiles(Path.Combine(@"\\samurai\Safes\From_TG\PensionTransactionAndRequest\Archive", now.ToString("yyyy.MM.dd")));
-                string res6 = RunCheckStatusOnly(Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Withdrawal\Archive", yesterday.ToString("dd.MM.yyyy")), Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Withdrawal\HizunHozer\Archive", now.ToString("ddMMyyyy")));
-                string res7 = RunCheckStatusOnly(Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Transfer Between Courses\Archive", yesterday.ToString("dd.MM.yyyy")), Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Transfer Between Courses\HizunHozer\Archive", now.ToString("ddMMyyyy")));
-                string res8 = RunCheckStatusOnly(Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Standing Order\Standing Order To Noga\Archive", yesterday.ToString("ddMMyyyy")), Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Standing Order\Standing Order To Noga\HizunHozer\Archive", now.ToString("ddMMyyyy")));
-                string res9_Folders = RunCheckStatusOnly(Path.Combine(@"\\psrs\Banks Source Files\Automated Deposits\ExportDepositTargetToBank", yesterday.ToString("yyyy.MM.dd")), Path.Combine(@"\\psrs\Banks Source Files\Automated Deposits\Import Target Deposit\Archive", now.ToString("yyyy.MM.dd")));
-                string res10 = CheckIfFolderHasFiles(Path.Combine(@"\\psrs\g$\Pension\TransferOutPension\Archive", now.ToString("yyyyMMdd")));
 
-                // שליפת סטטוסים של ג'ובי ה-BI מתוך שרת home
+                string res6 = RunCheckStatusOnly(
+                    Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Withdrawal\Archive", yesterday.ToString("dd.MM.yyyy")),
+                    Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Withdrawal\HizunHozer\Archive", now.ToString("ddMMyyyy"))
+                );
+
+                string res7 = RunCheckStatusOnly(
+                    Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Transfer Between Courses\Archive", yesterday.ToString("dd.MM.yyyy")),
+                    Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Transfer Between Courses\HizunHozer\Archive", now.ToString("ddMMyyyy"))
+                );
+
+                string res8 = RunCheckStatusOnly(
+                    Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Standing Order\Standing Order To Noga\Archive", yesterday.ToString("ddMMyyyy")),
+                    Path.Combine(@"\\psrs\G$\Generix\GENERIX SSIS FILES\Export Files\Standing Order\Standing Order To Noga\HizunHozer\Archive", now.ToString("ddMMyyyy"))
+                );
+
+                string res9_Folders = RunCheckStatusOnly(
+                    Path.Combine(@"\\psrs\Banks Source Files\Automated Deposits\ExportDepositTargetToBank", yesterday.ToString("yyyy.MM.dd")),
+                    Path.Combine(@"\\psrs\Banks Source Files\Automated Deposits\Import Target Deposit\Archive", now.ToString("yyyy.MM.dd"))
+                );
+
+                string res10 = CheckIfFolderHasFiles(
+                    Path.Combine(@"\\psrs\g$\Pension\TransferOutPension\Archive", now.ToString("yyyyMMdd"))
+                );
+
+                string depositsStatus =
+                    res9_Folders == "SUCCESS"
+                        ? (now.DayOfWeek == DayOfWeek.Sunday
+                            ? $"נכון לתאריך {yesterday:dd.MM.yyyy} הסתיים בהצלחה"
+                            : "הסתיים בהצלחה")
+                        : "<b>טרם הסתיים</b>";
+
                 Dictionary<string, string> biJobs = GetBIJobStatuses();
-
-                // שליפת סטטוסים של שלושת האתרים מתוך השרת החדש (172.16.8.16)
                 Dictionary<string, string> webSitesJobs = GetWebSitesJobStatuses();
 
-                // חילוץ הסטטוסים של האתרים (משרת האתרים החדש)
                 string customerSnapStatus = GetBIVal(webSitesJobs, "admin_recreate_snap");
                 string employerSnapStatus = GetBIVal(webSitesJobs, "admin_recreate_employer_snap");
                 string agentSnapStatus = GetBIVal(webSitesJobs, "admin_recreate_agent_snap");
 
-                // חילוץ הסטטוסים של מודלי ה-BI (משרת home)
                 string salesGemelStatus = GetBIVal(biJobs, "proj_sales_gemel_admin");
                 string scorePreservStatus = GetBIVal(biJobs, "proj_score_preservation_daily");
 
@@ -57,7 +77,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 6. קליטת היזונים חוזרים משיכות – {FormatStatus(res6)}<br>
                 7. קליטת היזונים חוזרים העברות בין מסלולים - {FormatStatus(res7)}<br>
                 8. קליטת היזונים חוזרים הוראות קבע - {FormatStatus(res8)}<br>
-                9. קליטת היזונים חוזרים הפקדות – {FormatStatus(res9_Folders)}<br>
+                9. קליטת היזונים חוזרים הפקדות – {depositsStatus}<br>
                 10. קליטת העברות החוצה פנסיה ל CRM – {FormatStatus(res10)}<br>
                 11. BI :<br>
                 &nbsp;&nbsp;&nbsp;1. סנכרון אתר לקוחות - {customerSnapStatus}<br>
@@ -76,6 +96,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 Dts.TaskResult = (int)Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Failure;
             }
         }
+
         private Dictionary<int, string> GetJobHistory(DateTime targetDate)
         {
             var results = new Dictionary<int, string>();
@@ -112,11 +133,14 @@ namespace ST_bb25f8172821441a9a8074e199874c50
             JobHistory AS (
                 SELECT job_id, run_status, run_date, run_time,
                 ROW_NUMBER() OVER (PARTITION BY job_id ORDER BY run_date DESC, run_time DESC) AS rn
-                FROM msdb.dbo.sysjobhistory WHERE step_id = 0
+                FROM msdb.dbo.sysjobhistory 
+                WHERE step_id = 0
                 AND run_date >= @MinDate
             ),
             LatestHistory AS (
-                SELECT job_id, run_status, run_date, run_time FROM JobHistory WHERE rn = 1
+                SELECT job_id, run_status, run_date, run_time 
+                FROM JobHistory 
+                WHERE rn = 1
             )
             SELECT 
                 jl.JobOrder, 
@@ -139,6 +163,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         cmd.Parameters.AddWithValue("@MinDate", sqlTargetDate);
+
                         using (SqlDataReader rdr = cmd.ExecuteReader())
                         {
                             while (rdr.Read())
@@ -146,11 +171,17 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                                 int order = Convert.ToInt32(rdr["JobOrder"]);
                                 int status = Convert.ToInt32(rdr["Status"]);
                                 int businessDays = Convert.ToInt32(rdr["BusinessDays"]);
-                                DateTime? runDt = rdr["RunDateTime"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(rdr["RunDateTime"]) : null;
 
-                                bool isRelevantDate = runDt.HasValue && (runDt.Value.Date == targetDate.Date || runDt.Value.Date == DateTime.Today);
+                                DateTime? runDt = rdr["RunDateTime"] != DBNull.Value
+                                    ? (DateTime?)Convert.ToDateTime(rdr["RunDateTime"])
+                                    : null;
+
+                                bool isRelevantDate =
+                                    runDt.HasValue &&
+                                    (runDt.Value.Date == targetDate.Date || runDt.Value.Date == DateTime.Today);
 
                                 string text = "";
+
                                 if (order == 2)
                                 {
                                     if (businessDays <= 4)
@@ -174,7 +205,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                                     }
                                     else if (status == 1 && runDt.HasValue)
                                     {
-                                        text = $"נכון לתאריך {runDt.Value.ToString("dd.MM.yyyy")} הסתיים בהצלחה";
+                                        text = $"נכון לתאריך {runDt.Value:dd.MM.yyyy} הסתיים בהצלחה";
                                     }
                                     else
                                     {
@@ -192,11 +223,14 @@ namespace ST_bb25f8172821441a9a8074e199874c50
             {
                 Dts.Events.FireWarning(0, "Job History", "Error fetching Job History: " + ex.Message, "", 0);
             }
+
             return results;
         }
+
         private Dictionary<string, string> GetBIJobStatuses()
         {
             var biResults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
             string query = @"
                 SELECT 
                     j.name AS JobName,
@@ -213,6 +247,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 using (SqlConnection conn = new SqlConnection(connStrForBI))
                 {
                     conn.Open();
+
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         using (SqlDataReader rdr = cmd.ExecuteReader())
@@ -233,12 +268,14 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 biResults["ERROR_FLAG"] = "<b>שגיאת התחברות ל-home: " + cleanError + "</b>";
                 Dts.Events.FireWarning(0, "BI Jobs Status Error", ex.Message, "", 0);
             }
+
             return biResults;
         }
 
         private Dictionary<string, string> GetWebSitesJobStatuses()
         {
             var webResults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
             string query = @"
                 SELECT
                     j.name AS JobName,
@@ -255,6 +292,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 using (SqlConnection conn = new SqlConnection(connStrForWebSites))
                 {
                     conn.Open();
+
                     using (SqlCommand cmd = new SqlCommand(query, conn))
                     {
                         using (SqlDataReader rdr = cmd.ExecuteReader())
@@ -275,21 +313,28 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 webResults["ERROR_FLAG"] = "<b>שגיאת התחברות לאתרים: " + cleanError + "</b>";
                 Dts.Events.FireWarning(0, "WebSites Connect Error", ex.Message, "", 0);
             }
+
             return webResults;
         }
 
         private string GetVal(Dictionary<int, string> d, int k)
         {
-            if (d != null && d.ContainsKey(k)) return d[k];
+            if (d != null && d.ContainsKey(k))
+                return d[k];
+
             return "<b>טרם הסתיים</b>";
         }
 
         private string GetBIVal(Dictionary<string, string> d, string key)
         {
-            if (d == null) return "<b>טרם עודכן</b>";
-            if (d.ContainsKey("ERROR_FLAG")) return d["ERROR_FLAG"];
+            if (d == null)
+                return "<b>טרם עודכן</b>";
+
+            if (d.ContainsKey("ERROR_FLAG"))
+                return d["ERROR_FLAG"];
 
             string searchKey = key.Trim().ToLower();
+
             foreach (var kvp in d)
             {
                 if (kvp.Key.ToLower().Contains(searchKey))
@@ -297,6 +342,7 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                     return kvp.Value;
                 }
             }
+
             return "<b>טרם עודכן</b>";
         }
 
@@ -304,21 +350,30 @@ namespace ST_bb25f8172821441a9a8074e199874c50
         {
             try
             {
-                return (!Directory.Exists(p) || Directory.GetFiles(p).Length == 0) ? "FAILED" : "SUCCESS";
+                return (!Directory.Exists(p) || Directory.GetFiles(p).Length == 0)
+                    ? "FAILED"
+                    : "SUCCESS";
             }
-            catch { return "FAILED"; }
+            catch
+            {
+                return "FAILED";
+            }
         }
 
         private string RunCheckStatusOnly(string sourceFolder, string archiveFolder)
         {
             try
             {
-                if (!Directory.Exists(sourceFolder)) return "FAILED";
+                if (!Directory.Exists(sourceFolder))
+                    return "FAILED";
 
                 string[] sourceFiles = Directory.GetFiles(sourceFolder);
-                if (sourceFiles.Length == 0) return "SUCCESS";
 
-                if (!Directory.Exists(archiveFolder)) return "FAILED";
+                if (sourceFiles.Length == 0)
+                    return "SUCCESS";
+
+                if (!Directory.Exists(archiveFolder))
+                    return "FAILED";
 
                 var archiveFileNames = new HashSet<string>(
                     Directory.GetFiles(archiveFolder).Select(Path.GetFileName),
@@ -328,21 +383,29 @@ namespace ST_bb25f8172821441a9a8074e199874c50
                 foreach (string f in sourceFiles)
                 {
                     string fileName = Path.GetFileNameWithoutExtension(f);
-                    if (!fileName.Contains("_")) continue;
+
+                    if (!fileName.Contains("_"))
+                        continue;
 
                     string id = fileName.Split('_').Last();
 
                     if (!archiveFileNames.Any(x => x.IndexOf(id, StringComparison.OrdinalIgnoreCase) >= 0))
                         return "FAILED";
                 }
+
                 return "SUCCESS";
             }
-            catch { return "FAILED"; }
+            catch
+            {
+                return "FAILED";
+            }
         }
 
         private string FormatStatus(string res)
         {
-            return res == "SUCCESS" ? "הסתיים בהצלחה" : "<b>טרם הסתיים</b>";
+            return res == "SUCCESS"
+                ? "הסתיים בהצלחה"
+                : "<b>טרם הסתיים</b>";
         }
     }
 }
