@@ -1,28 +1,107 @@
 using System;
 using System.Diagnostics;
-using Microsoft.SqlServer.Dts.Runtime;
+using System.Runtime.InteropServices;
 
 namespace ST_ae33f964e57a479eadde530e793324bf
 {
     [Microsoft.SqlServer.Dts.Tasks.ScriptTask.SSISScriptTaskEntryPointAttribute]
     public partial class ScriptMain : Microsoft.SqlServer.Dts.Tasks.ScriptTask.VSTARTScriptObjectModelBase
     {
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr ProcessId);
+
+        [DllImport("user32.dll")]
+        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
+
+        [DllImport("kernel32.dll")]
+        private static extern uint GetCurrentThreadId();
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        private const int SW_RESTORE = 9;
+
         public void Main()
         {
             try
             {
-                string query = Uri.EscapeDataString("גלידה");
+                string url = "https://iwaytest01/sapweb/ADM/Test-iWay01-CP/BIN/LISTENER.DLL?CTX=LOG!Test-iWay01-CP&X=Y";
+                
+                // 1. פתיחה מאולצת בכרום
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = "https://www.google.com/search?q=" + query,
+                    FileName = "chrome.exe",
+                    Arguments = url,
                     UseShellExecute = true
                 });
+
+                // המתן לטעינת דף הלוגין הראשוני
+                System.Threading.Thread.Sleep(4000);
+
+                // 2. הזנת שם המשתמש ולחיצה על Enter
+                System.Windows.Forms.SendKeys.SendWait("ALNETANM");
+                System.Threading.Thread.Sleep(500);
+                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+
+                // 3. המתנה ארוכה (10 שניות) לטעינת עץ התיקיות ב-SAP
+                System.Threading.Thread.Sleep(10000);
+
+                // 4. הקפצת חלון כרום לפרונט והבטחת פוקוס מקלדת חומרתי
+                Process[] chromeProcesses = Process.GetProcessesByName("chrome");
+                foreach (Process p in chromeProcesses)
+                {
+                    if (!string.IsNullOrEmpty(p.MainWindowTitle))
+                    {
+                        IntPtr hWnd = p.MainWindowHandle;
+                        if (hWnd != IntPtr.Zero)
+                        {
+                            if (IsIconic(hWnd)) ShowWindow(hWnd, SW_RESTORE);
+                            
+                            uint chromeThreadId = GetWindowThreadProcessId(hWnd, IntPtr.Zero);
+                            uint currentThreadId = GetCurrentThreadId();
+                            
+                            AttachThreadInput(currentThreadId, chromeThreadId, true);
+                            SetForegroundWindow(hWnd); 
+                            AttachThreadInput(currentThreadId, chromeThreadId, false); 
+                            break;
+                        }
+                    }
+                }
+                System.Threading.Thread.Sleep(1000);
+
+                // 5. פתיחת חלונית החיפוש (Ctrl + F) - הגישה שעובדת ומאתרת את האלמנט
+                System.Windows.Forms.SendKeys.SendWait("^(f)");
+                System.Threading.Thread.Sleep(1500); 
+
+                // 6. הקלדת "תשתיות" (כרום יסמן ויקפוץ לשורה הנכונה בעץ)
+                System.Windows.Forms.SendKeys.SendWait("תשתיות");
+                System.Threading.Thread.Sleep(1000);
+
+                // 7. לחיצה על Escape כדי לסגור את תיבת החיפוש
+                System.Windows.Forms.SendKeys.SendWait("{ESC}");
+                System.Threading.Thread.Sleep(500);
+
+                // 8. לחיצה על TAB - זהו מקש הקסם שמעביר את הפוקוס מחלונית החיפוש שנסגרה אל תוך האלמנט הצהוב המסומן בדף
+                System.Windows.Forms.SendKeys.SendWait("{TAB}");
+                System.Threading.Thread.Sleep(500);
+
+                // 9. כעת כשהפוקוס נעול על השורה, נשלח חץ ימני וחץ שמאלי כדי לפתוח את הפלוס של ה-SAP
+                System.Windows.Forms.SendKeys.SendWait("{RIGHT}");
+                System.Threading.Thread.Sleep(300);
+                System.Windows.Forms.SendKeys.SendWait("{LEFT}");
+                System.Threading.Thread.Sleep(1000);
 
                 Dts.TaskResult = (int)ScriptResults.Success;
             }
             catch (Exception ex)
             {
-                Dts.Events.FireError(0, "GlidaSearch", ex.Message, "", 0);
+                Dts.Events.FireError(0, "SAP_Automation_Error", ex.Message, "", 0);
                 Dts.TaskResult = (int)ScriptResults.Failure;
             }
         }
@@ -36,16 +115,3 @@ namespace ST_ae33f964e57a479eadde530e793324bf
         #endregion
     }
 }
-השלבים:
-
-גרור Script Task ל-Control Flow
-לחיצה כפולה → Edit Script (זה יפתח VSTA)
-החלף את Main() בקוד למעלה
-שמור, סגור, הרץ (F5 או Execute Task)
-
-אבל חשוב שתדע מגבלה מהותית: זה יעבוד רק כשאתה מריץ את החבילה אינטראקטיבית מ-Visual Studio/SSDT על המחשב שלך. אם החבילה תרוץ מ-SQL Agent או מהקטלוג על השרת — היא רצה תחת חשבון שירות בלי session גרפי, אז הדפדפן לא ייפתח (או ייפתח על השרת בלי שאף אחד יראה אותו). בסביבה כמו שלך זה כנראה גם ייחסם על ידי מדיניות.
-אז זה מגניב כניסוי/בדיקה מקומית, אבל אם יש מאחורי זה צורך אמיתי — למשל למשוך תוצאות חיפוש לתוך טבלה — הכיוון הנכון ב-SSIS זה HttpWebRequest/WebClient בתוך ה-Script Task (או Web Service Task) ולא פתיחת דפדפן. מה אתה בעצם מנסה להשיג עם זה?
-
-
-Severity	Code	Description	Project	File	Line	Suppression State
-Error	CS8370	Feature 'top-level statements' is not available in C# 7.3. Please use language version 9.0 or greater.	ST_ae33f964e57a479eadde530e793324bf	C:\Users\netanelma\AppData\Local\Temp\Vsta\SSIS_ST120\VstaUKjVI8MAJkiYPNm4BR8HkQ\VstaZska_J34c0WkjspiQCPOGA\ScriptMain.cs	5	Active
