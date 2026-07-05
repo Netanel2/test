@@ -1,117 +1,141 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Forms;
 
 namespace ST_ae33f964e57a479eadde530e793324bf
 {
     [Microsoft.SqlServer.Dts.Tasks.ScriptTask.SSISScriptTaskEntryPointAttribute]
     public partial class ScriptMain : Microsoft.SqlServer.Dts.Tasks.ScriptTask.VSTARTScriptObjectModelBase
     {
-        [DllImport("user32.dll")]
-        private static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")] static extern bool IsIconic(IntPtr hWnd);
+        [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+        [DllImport("user32.dll")] static extern bool SetCursorPos(int X, int Y);
+        [DllImport("user32.dll")] static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
 
-        [DllImport("user32.dll")]
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, IntPtr ProcessId);
+        const int SW_RESTORE = 9;
+        const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+        const uint MOUSEEVENTF_LEFTUP = 0x0004;
 
-        [DllImport("user32.dll")]
-        private static extern bool AttachThreadInput(uint idAttach, uint idAttachTo, bool fAttach);
-
-        [DllImport("kernel32.dll")]
-        private static extern uint GetCurrentThreadId();
-
-        [DllImport("user32.dll")]
-        private static extern bool IsIconic(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-        private const int SW_RESTORE = 9;
+        struct RECT
+        {
+            public int Left;
+            public int Top;
+            public int Right;
+            public int Bottom;
+        }
 
         public void Main()
         {
             try
             {
                 string url = "https://iwaytest01/sapweb/ADM/Test-iWay01-CP/BIN/LISTENER.DLL?CTX=LOG!Test-iWay01-CP&X=Y";
-                
-                // 1. פתיחה מאולצת בכרום
+
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = "chrome.exe",
-                    Arguments = url,
+                    Arguments = "--new-window \"" + url + "\"",
                     UseShellExecute = true
                 });
 
-                // המתן לטעינת דף הלוגין הראשוני
-                System.Threading.Thread.Sleep(4000);
+                Thread.Sleep(5000);
 
-                // 2. הזנת שם המשתמש ולחיצה על Enter
-                System.Windows.Forms.SendKeys.SendWait("ALNETANM");
-                System.Threading.Thread.Sleep(500);
-                System.Windows.Forms.SendKeys.SendWait("{ENTER}");
+                IntPtr chrome = BringChromeToFront();
+                if (chrome == IntPtr.Zero)
+                    throw new Exception("לא נמצא חלון Chrome פתוח.");
 
-                // 3. המתנה ארוכה (10 שניות) לטעינת עץ התיקיות ב-SAP
-                System.Threading.Thread.Sleep(10000);
+                SendKeys.SendWait("ALNETANM");
+                Thread.Sleep(500);
+                SendKeys.SendWait("{ENTER}");
 
-                // 4. הקפצת חלון כרום לפרונט והבטחת פוקוס מקלדת חומרתי
-                Process[] chromeProcesses = Process.GetProcessesByName("chrome");
-                foreach (Process p in chromeProcesses)
-                {
-                    if (!string.IsNullOrEmpty(p.MainWindowTitle))
-                    {
-                        IntPtr hWnd = p.MainWindowHandle;
-                        if (hWnd != IntPtr.Zero)
-                        {
-                            if (IsIconic(hWnd)) ShowWindow(hWnd, SW_RESTORE);
-                            
-                            uint chromeThreadId = GetWindowThreadProcessId(hWnd, IntPtr.Zero);
-                            uint currentThreadId = GetCurrentThreadId();
-                            
-                            AttachThreadInput(currentThreadId, chromeThreadId, true);
-                            SetForegroundWindow(hWnd); 
-                            AttachThreadInput(currentThreadId, chromeThreadId, false); 
-                            break;
-                        }
-                    }
-                }
-                System.Threading.Thread.Sleep(1000);
+                Thread.Sleep(12000);
 
-                // 5. פתיחת חלונית החיפוש (Ctrl + F) - הגישה שעובדת ומאתרת את האלמנט
-                System.Windows.Forms.SendKeys.SendWait("^(f)");
-                System.Threading.Thread.Sleep(1500); 
+                chrome = BringChromeToFront();
+                Thread.Sleep(1000);
 
-                // 6. הקלדת "תשתיות" (כרום יסמן ויקפוץ לשורה הנכונה בעץ)
-                System.Windows.Forms.SendKeys.SendWait("תשתיות");
-                System.Threading.Thread.Sleep(1000);
+                // חיפוש הטקסט
+                SendKeys.SendWait("^f");
+                Thread.Sleep(800);
+                SendKeys.SendWait("תשתיות");
+                Thread.Sleep(1500);
+                SendKeys.SendWait("{ESC}");
+                Thread.Sleep(700);
 
-                // 7. לחיצה על Escape כדי לסגור את תיבת החיפוש
-                System.Windows.Forms.SendKeys.SendWait("{ESC}");
-                System.Threading.Thread.Sleep(500);
+                // ניסיון ראשון: לפתוח עם מקלדת
+                SendKeys.SendWait("{ENTER}");
+                Thread.Sleep(500);
+                SendKeys.SendWait("{RIGHT}");
+                Thread.Sleep(800);
 
-                // 8. לחיצה על TAB - זהו מקש הקסם שמעביר את הפוקוס מחלונית החיפוש שנסגרה אל תוך האלמנט הצהוב המסומן בדף
-                System.Windows.Forms.SendKeys.SendWait("{TAB}");
-                System.Threading.Thread.Sleep(500);
+                // ניסיון שני: קליק באזור הפלוס של העץ
+                // כרום סימן את השורה שמצאנו. הפלוס בדרך כלל נמצא מעט שמאלה/ימינה מהטקסט לפי RTL/LTR.
+                ClickTreePlusApprox(chrome);
 
-                // 9. כעת כשהפוקוס נעול על השורה, נשלח חץ ימני וחץ שמאלי כדי לפתוח את הפלוס של ה-SAP
-                System.Windows.Forms.SendKeys.SendWait("{RIGHT}");
-                System.Threading.Thread.Sleep(300);
-                System.Windows.Forms.SendKeys.SendWait("{LEFT}");
-                System.Threading.Thread.Sleep(1000);
+                Thread.Sleep(500);
+                SendKeys.SendWait("{RIGHT}");
+                Thread.Sleep(500);
+                SendKeys.SendWait("{ENTER}");
 
                 Dts.TaskResult = (int)ScriptResults.Success;
             }
             catch (Exception ex)
             {
-                Dts.Events.FireError(0, "SAP_Automation_Error", ex.Message, "", 0);
+                Dts.Events.FireError(0, "SAP_Automation_Error", ex.ToString(), "", 0);
                 Dts.TaskResult = (int)ScriptResults.Failure;
             }
         }
 
-        #region ScriptResults declaration
+        private IntPtr BringChromeToFront()
+        {
+            Process[] chromeProcesses = Process.GetProcessesByName("chrome");
+
+            foreach (Process p in chromeProcesses)
+            {
+                if (p.MainWindowHandle != IntPtr.Zero && !string.IsNullOrEmpty(p.MainWindowTitle))
+                {
+                    IntPtr hWnd = p.MainWindowHandle;
+
+                    if (IsIconic(hWnd))
+                        ShowWindow(hWnd, SW_RESTORE);
+
+                    SetForegroundWindow(hWnd);
+                    Thread.Sleep(500);
+
+                    return hWnd;
+                }
+            }
+
+            return IntPtr.Zero;
+        }
+
+        private void ClickTreePlusApprox(IntPtr chromeWindow)
+        {
+            RECT rect;
+            if (!GetWindowRect(chromeWindow, out rect))
+                return;
+
+            int width = rect.Right - rect.Left;
+            int height = rect.Bottom - rect.Top;
+
+            // התאמה כללית לעץ שמופיע בצד שמאל/אמצע.
+            // אם זה מפספס — משנים רק את שני המספרים האלה.
+            int x = rect.Left + 85;
+            int y = rect.Top + (height / 2);
+
+            SetCursorPos(x, y);
+            Thread.Sleep(200);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(80);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+        }
+
         enum ScriptResults
         {
             Success = Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Success,
             Failure = Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Failure
         };
-        #endregion
     }
 }
