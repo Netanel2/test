@@ -1,5 +1,509 @@
-	Application Blocked
- 	
-Description	ConsoleApp9 (ConsoleApp9.exe)
-Vendor	
-Publisher
+using System;
+using System.IO;
+using System.Text;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Windows.Forms;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+
+namespace PhoneExtractorApp
+{
+    internal static class Program
+    {
+        [STAThread]
+        static void Main()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new ExtractionForm());
+        }
+    }
+    // --- רכיב כפתור Fluent מודרני בעיצוב מעוגל ---
+    public class FluentButton : Button
+    {
+        public int BorderRadius { get; set; } = 12;
+        public Color HoverColor { get; set; } = Color.FromArgb(29, 78, 216); // כחול כהה יותר לריחוף
+        private bool isHovered = false;
+
+        public FluentButton()
+        {
+            this.FlatStyle = FlatStyle.Flat;
+            this.FlatAppearance.BorderSize = 0;
+            this.Cursor = Cursors.Hand;
+            this.Size = new Size(110, 44);
+            this.MouseEnter += (s, e) => { isHovered = true; this.Invalidate(); };
+            this.MouseLeave += (s, e) => { isHovered = false; this.Invalidate(); };
+        }
+
+        protected override void OnPaint(PaintEventArgs pevent)
+        {
+            Graphics g = pevent.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            Color currentBg = isHovered && this.Enabled ? HoverColor : (this.Enabled ? this.BackColor : Color.FromArgb(229, 231, 235));
+            Color currentFg = this.Enabled ? this.ForeColor : Color.FromArgb(156, 163, 175);
+
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                int r = BorderRadius;
+                path.AddArc(0, 0, r, r, 180, 90);
+                path.AddArc(this.Width - r, 0, r, r, 270, 90);
+                path.AddArc(this.Width - r, this.Height - r, r, r, 0, 90);
+                path.AddArc(0, this.Height - r, r, r, 90, 90);
+                path.CloseAllFigures();
+
+                this.Region = new Region(path);
+
+                using (SolidBrush brush = new SolidBrush(currentBg))
+                {
+                    g.FillPath(brush, path);
+                }
+            }
+
+            TextRenderer.DrawText(g, this.Text, this.Font, this.ClientRectangle, currentFg, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+        }
+    }
+    // --- רכיב כרטיסייה (Card) Fluent בעל פינות מעוגלות ---
+    public class FluentCard : Panel
+    {
+        public int BorderRadius { get; set; } = 18;
+        public Color BorderColor { get; set; } = Color.FromArgb(229, 231, 235);
+
+        public FluentCard()
+        {
+            this.BackColor = Color.White;
+            this.Padding = new Padding(24);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                int r = BorderRadius;
+                path.AddArc(0, 0, r, r, 180, 90);
+                path.AddArc(this.Width - r, 0, r, r, 270, 90);
+                path.AddArc(this.Width - r, this.Height - r, r, r, 0, 90);
+                path.AddArc(0, this.Height - r, r, r, 90, 90);
+                path.CloseAllFigures();
+
+                using (Pen pen = new Pen(BorderColor, 1))
+                {
+                    g.DrawPath(pen, path);
+                }
+            }
+        }
+    }
+
+    public class ExtractionForm : Form
+    {
+        private TextBox txtFolderInput; 
+        private ComboBox cmbFiles; 
+        private TextBox txtOutputFolderInput; 
+        private TextBox txtSearchValue; 
+        private FlowLayoutPanel pnlChips; 
+        
+        private FluentButton btnExtract;
+        private FluentButton btnScan;
+        private FluentButton btnBrowseOutput;
+        private FluentButton btnAdd;
+        
+        private Label lblProgressText;
+        private Label lblProgressPercent;
+        private Panel pnlCustomProgress; 
+        private Panel pnlAlert;          
+        private Label lblAlertText;
+        private Label lblCredit; 
+        
+        private string targetFolder = ""; 
+        private List<string> searchValues = new List<string>();
+        private int progressValue = 0;
+
+        // פלטת הצבעים הרשמית (Fluent Design 2026)
+        private Color colorBackground  = Color.FromArgb(245, 247, 251); 
+        private Color colorCard        = Color.White;                    
+        private Color colorPrimary     = Color.FromArgb(37, 99, 235);   
+        private Color colorPrimaryHover= Color.FromArgb(29, 78, 216);   
+        private Color colorSuccess     = Color.FromArgb(22, 163, 74);  
+        private Color colorSuccessHover= Color.FromArgb(21, 128, 61);  
+        private Color colorWarning     = Color.FromArgb(245, 158, 11);  
+        private Color colorDanger      = Color.FromArgb(220, 38, 38);   
+        private Color colorTextDark    = Color.FromArgb(17, 24, 39);     
+        private Color colorTextMuted   = Color.FromArgb(107, 114, 128); 
+        private Color colorBorder      = Color.FromArgb(229, 231, 235); 
+
+        private Font fontMainTitle = new Font("Segoe UI Variable Display", 22F, FontStyle.Bold);
+        private Font fontSection   = new Font("Segoe UI Variable Display", 14F, FontStyle.Bold);
+        private Font fontRegular   = new Font("Segoe UI Variable Text", 10F, FontStyle.Regular);
+        private Font fontBold      = new Font("Segoe UI Variable Text", 10F, FontStyle.Bold);
+        private Font fontSmall     = new Font("Segoe UI Variable Text", 9F, FontStyle.Regular);
+            // --- CARD 2: OUTPUT LOCATION ---
+            FluentCard cardOutput = new FluentCard() { Location = new Point(32, 250), Size = new Size(870, 115) };
+            Label lblTitle2 = new Label() { Text = "💾 Output Location", Location = new Point(600, 15), Size = new Size(245, 25), Font = fontSection, ForeColor = colorPrimary, TextAlign = ContentAlignment.TopRight };
+            Label lblDesc2 = new Label() { Text = "הנתיב שבו יישמר קובץ ה-Notepad הסופי (search_results_notepad.txt)", Location = new Point(200, 42), Size = new Size(645, 20), Font = fontSmall, ForeColor = colorTextMuted, TextAlign = ContentAlignment.TopRight };
+            
+            txtOutputFolderInput = new TextBox() { Location = new Point(140, 72), Size = new Size(550, 48), Font = fontRegular, BorderStyle = BorderStyle.FixedSingle };
+            txtOutputFolderInput.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            txtOutputFolderInput.TextChanged += (s, e) => ValidateForm();
+
+            btnBrowseOutput = new FluentButton() { Text = "בחר תיקייה...", Location = new Point(15, 70), Size = new Size(115, 30), Font = fontBold, BackColor = colorPrimary, HoverColor = colorPrimaryHover, ForeColor = Color.White };
+            btnBrowseOutput.Click += BtnBrowseOutput_Click;
+            cardOutput.Controls.AddRange(new Control[] { lblTitle2, lblDesc2, txtOutputFolderInput, btnBrowseOutput });
+            this.Controls.Add(cardOutput);
+
+            // --- CARD 3: PHONE NUMBERS ---
+            FluentCard cardPhones = new FluentCard() { Location = new Point(32, 385), Size = new Size(870, 160) };
+            Label lblTitle3 = new Label() { Text = "📞 Phone Numbers", Location = new Point(600, 15), Size = new Size(245, 25), Font = fontSection, ForeColor = colorPrimary, TextAlign = ContentAlignment.TopRight };
+            Label lblDesc3 = new Label() { Text = "הזן מספר פלאפון ולחץ Enter להוספה בתור תגית (Chip) מודרנית", Location = new Point(200, 42), Size = new Size(645, 20), Font = fontSmall, ForeColor = colorTextMuted, TextAlign = ContentAlignment.TopRight };
+            
+            txtSearchValue = new TextBox() { Location = new Point(140, 72), Size = new Size(550, 48), Font = fontRegular, BorderStyle = BorderStyle.FixedSingle };
+            txtSearchValue.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { BtnAdd_Click(); e.SuppressKeyPress = true; } };
+            
+            btnAdd = new FluentButton() { Text = "הוסף", Location = new Point(15, 70), Size = new Size(115, 30), Font = fontBold, BackColor = colorPrimary, HoverColor = colorPrimaryHover, ForeColor = Color.White };
+            btnAdd.Click += (s, e) => BtnAdd_Click();
+
+            pnlChips = new FlowLayoutPanel() { Location = new Point(15, 115), Size = new Size(840, 40), AutoScroll = true, BackColor = Color.Transparent, FlowDirection = FlowDirection.RightToLeft };
+            cardPhones.Controls.AddRange(new Control[] { lblTitle3, lblDesc3, txtSearchValue, btnAdd, pnlChips });
+            this.Controls.Add(cardPhones);
+
+            // --- ALERT STATUS & PROGRESS ---
+            pnlAlert = new Panel() { Location = new Point(32, 565), Size = new Size(870, 42), BackColor = Color.FromArgb(254, 243, 199) }; 
+            pnlAlert.Paint += PnlAlert_Paint;
+            lblAlertText = new Label() { Text = "🟡 Waiting for input", Location = new Point(10, 11), Size = new Size(850, 20), Font = fontBold, ForeColor = Color.FromArgb(180, 83, 9), TextAlign = ContentAlignment.TopRight };
+            pnlAlert.Controls.Add(lblAlertText);
+            this.Controls.Add(pnlAlert);
+
+            lblProgressText = new Label() { Text = "Processing...", Location = new Point(300, 620), Size = new Size(602, 20), Font = fontRegular, ForeColor = colorTextMuted, TextAlign = ContentAlignment.TopRight, Visible = false };
+            lblProgressPercent = new Label() { Text = "0%", Location = new Point(32, 620), Size = new Size(100, 20), Font = fontBold, ForeColor = colorTextDark, TextAlign = ContentAlignment.TopLeft, Visible = false };
+            pnlCustomProgress = new Panel() { Location = new Point(32, 645), Size = new Size(870, 12), BackColor = Color.FromArgb(243, 244, 246), Visible = false };
+            pnlCustomProgress.Paint += PnlCustomProgress_Paint;
+            this.Controls.AddRange(new Control[] { lblProgressText, lblProgressPercent, pnlCustomProgress });
+
+            // --- START BUTTON ---
+            btnExtract = new FluentButton() { Text = "▶  Start Extraction", Location = new Point(315, 680), Size = new Size(320, 54), Font = fontBold, BackColor = Color.FromArgb(229, 231, 235), ForeColor = Color.FromArgb(156, 163, 175), BorderRadius = 12 };
+            btnExtract.Enabled = false;
+            btnExtract.Click += BtnExtract_Click;
+            this.Controls.Add(btnExtract);
+
+            // --- FOOTER ---
+            lblCredit = new Label() { Text = "NM Software  |  Professional Edition  |  2026", Location = new Point(32, 755), Size = new Size(870, 25), Font = fontSmall, ForeColor = Color.FromArgb(156, 163, 175), TextAlign = ContentAlignment.MiddleCenter };
+            this.Controls.Add(lblCredit);
+        }
+
+        private void PnlAlert_Paint(object sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                int r = 12;
+                path.AddArc(0, 0, r, r, 180, 90);
+                path.AddArc(pnlAlert.Width - r, 0, r, r, 270, 90);
+                path.AddArc(pnlAlert.Width - r, pnlAlert.Height - r, r, r, 0, 90);
+                path.AddArc(0, pnlAlert.Height - r, r, r, 90, 90);
+                path.CloseAllFigures();
+                pnlAlert.Region = new Region(path);
+            }
+        }
+
+        private void PnlCustomProgress_Paint(object sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            int r = 6;
+            using (GraphicsPath path = new GraphicsPath())
+            {
+                path.AddArc(0, 0, r, r, 180, 90);
+                path.AddArc(pnlCustomProgress.Width - r, 0, r, r, 270, 90);
+                path.AddArc(pnlCustomProgress.Width - r, pnlCustomProgress.Height - r, r, r, 0, 90);
+                path.AddArc(0, pnlCustomProgress.Height - r, r, r, 90, 90);
+                path.CloseAllFigures();
+                pnlCustomProgress.Region = new Region(path);
+            }
+
+            int fillWidth = (int)((pnlCustomProgress.Width * progressValue) / 100);
+            if (fillWidth > 0)
+            {
+                using (LinearGradientBrush brush = new LinearGradientBrush(new Point(0, 0), new Point(fillWidth, 0), colorSuccess, colorSuccessHover))
+                {
+                    e.Graphics.FillRectangle(brush, 0, 0, fillWidth, pnlCustomProgress.Height);
+                }
+            }
+        }
+        // --- מערכת DRAG & DROP חכמה של NM SOFTWARE ---
+        private void ExtractionForm_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
+        }
+
+        private void ExtractionForm_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+            if (files.Length > 0)
+            {
+                string path = files[0];
+                if (Directory.Exists(path))
+                {
+                    txtFolderInput.Text = path;
+                    RefreshFiles();
+                    ShowToast("🟡 התיקייה נגררה ועודכנה במערכת", colorWarning, Color.FromArgb(180, 83, 9));
+                }
+                else if (File.Exists(path))
+                {
+                    txtFolderInput.Text = Path.GetDirectoryName(path);
+                    RefreshFiles();
+                    cmbFiles.SelectedItem = Path.GetFileName(path);
+                    ShowToast("🟡 קובץ המקור נגרר והתקבל בהצלחה", colorWarning, Color.FromArgb(180, 83, 9));
+                }
+            }
+        }
+
+        // --- ניהול רכיבי ה-CHIPS המעוצבים ---
+        private void BtnAdd_Click()
+        {
+            string rawVal = txtSearchValue.Text.Trim();
+            string cleanVal = Regex.Replace(rawVal, @"[^\d]", "");
+
+            if (string.IsNullOrEmpty(cleanVal))
+            {
+                ShowToast("🔴 אנא הזן מספר פלאפון תקין המכיל ספרות בלבד", colorDanger, Color.White);
+                return;
+            }
+
+            if (searchValues.Contains(cleanVal))
+            {
+                ShowToast("🟡 המספר הזה כבר קיים ברשימת החיפוש שלך", colorWarning, Color.FromArgb(180, 83, 9));
+                return;
+            }
+
+            searchValues.Add(cleanVal);
+            CreateChip(rawVal, cleanVal);
+
+            txtSearchValue.Text = "";
+            txtSearchValue.Focus();
+            ValidateForm();
+        }
+
+        private void CreateChip(string displayText, string cleanValue)
+        {
+            // יצירת פאנל תגית (Chip) מעוגל בסגנון Windows 11 Fluent
+            Panel chip = new Panel() { Size = new Size(150, 32), BackColor = Color.FromArgb(243, 244, 246), Margin = new Padding(4) };
+            chip.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+                using (GraphicsPath path = new GraphicsPath())
+                {
+                    int r = 12;
+                    path.AddArc(0, 0, r, r, 180, 90);
+                    path.AddArc(chip.Width - r, 0, r, r, 270, 90);
+                    path.AddArc(chip.Width - r, chip.Height - r, r, r, 0, 90);
+                    path.AddArc(0, chip.Height - r, r, r, 90, 90);
+                    path.CloseAllFigures();
+                    chip.Region = new Region(path);
+                }
+            };
+
+            Label lblText = new Label() { Text = displayText, Location = new Point(30, 6), Size = new Size(115, 20), Font = fontBold, ForeColor = colorTextDark, TextAlign = ContentAlignment.TopRight };
+            
+            // כפתור ה-X המודרני למחיקה מהירה בלחיצה
+            Label lblClose = new Label() { Text = "×", Location = new Point(5, 4), Size = new Size(20, 22), Font = fontSection, ForeColor = colorTextMuted, Cursor = Cursors.Hand, TextAlign = ContentAlignment.TopCenter };
+            lblClose.MouseEnter += (s, e) => lblClose.ForeColor = colorDanger;
+            lblClose.MouseLeave += (s, e) => lblClose.ForeColor = colorTextMuted;
+            lblClose.Click += (s, e) =>
+            {
+                searchValues.Remove(cleanValue);
+                pnlChips.Controls.Remove(chip);
+                ValidateForm();
+            };
+
+            chip.Controls.AddRange(new Control[] { lblText, lblClose });
+            pnlChips.Controls.Add(chip);
+        }
+
+        private void BtnBrowseOutput_Click(object sender, EventArgs e)
+        {
+            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+            {
+                fbd.Description = "בחר את התיקייה שבה יישמר קובץ התוצאות";
+                if (fbd.ShowDialog() == DialogResult.OK)
+                {
+                    txtOutputFolderInput.Text = fbd.SelectedPath;
+                }
+            }
+        }
+
+        private void btnScan_Click(object sender, EventArgs e)
+        {
+            RefreshFiles();
+        }
+        private void RefreshFiles()
+        {
+            try
+            {
+                cmbFiles.Items.Clear();
+                targetFolder = txtFolderInput.Text.Trim();
+
+                if (Directory.Exists(targetFolder))
+                {
+                    string[] files = Directory.GetFiles(targetFolder, "*");
+                    foreach (string file in files) cmbFiles.Items.Add(Path.GetFileName(file));
+                    if (cmbFiles.Items.Count > 0) { cmbFiles.SelectedIndex = 0; cmbFiles.Visible = true; }
+                }
+            }
+            catch { }
+            ValidateForm();
+        }
+
+        private void ValidateForm()
+        {
+            bool isValid = (cmbFiles.SelectedIndex != -1 && 
+                            searchValues.Count > 0 && 
+                            !string.IsNullOrEmpty(txtOutputFolderInput.Text.Trim()));
+
+            btnExtract.Enabled = isValid;
+
+            if (isValid)
+            {
+                btnExtract.BackColor = colorPrimary;
+                btnExtract.ForeColor = Color.White;
+                ShowToast("🟢 המערכת מוכנה להפעלת החילוץ", colorSuccess, Color.White);
+            }
+            else
+            {
+                btnExtract.BackColor = Color.FromArgb(229, 231, 235);
+                btnExtract.ForeColor = Color.FromArgb(156, 163, 175);
+                ShowToast("🟡 Waiting for input", Color.FromArgb(254, 243, 199), Color.FromArgb(180, 83, 9));
+            }
+        }
+
+        private void ShowToast(string message, Color bg, Color fg)
+        {
+            pnlAlert.BackColor = bg;
+            lblAlertText.Text = message;
+            lblAlertText.ForeColor = fg;
+            pnlAlert.Invalidate();
+        }
+
+        // --- לוגיקת סריקת הסטרימינג המהירה של NM SOFTWARE ---
+        private void BtnExtract_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (cmbFiles.SelectedIndex == -1) return;
+
+                string selectedFileName = cmbFiles.SelectedItem.ToString();
+                string sourcePath = Path.Combine(targetFolder, selectedFileName);
+
+                if (!File.Exists(sourcePath)) return;
+
+                string outputFolder = txtOutputFolderInput.Text.Trim();
+                if (!Directory.Exists(outputFolder)) return;
+
+                string outputPath = Path.Combine(outputFolder, "search_results_notepad.txt");
+                int matchCount = 0;
+
+                // הפעלת רכיבי ה-Progress המעוצבים
+                lblProgressText.Visible = true;
+                lblProgressPercent.Visible = true;
+                pnlCustomProgress.Visible = true;
+                ShowToast("🟢 Processing...", colorSuccess, Color.White);
+
+                Encoding hebrewEncoding = Encoding.GetEncoding(1255);
+                long totalBytes = new FileInfo(sourcePath).Length;
+                long bytesRead = 0;
+
+                using (var reader = new StreamReader(sourcePath, hebrewEncoding))
+                using (var writer = new StreamWriter(outputPath, false, hebrewEncoding))
+                {
+                    string line;
+                    int lineNo = 0;
+                    int updateCounter = 0;
+
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        lineNo++;
+                        updateCounter++;
+                        bytesRead += hebrewEncoding.GetByteCount(line) + 2;
+
+                        if (string.IsNullOrWhiteSpace(line)) continue;
+
+                        bool isMatch = false;
+                        foreach (string val in searchValues)
+                        {
+                            if (line.IndexOf(val, StringComparison.OrdinalIgnoreCase) >= 0)
+                            {
+                                isMatch = true;
+                                break;
+                            }
+                        }
+
+                        if (!isMatch)
+                        {
+                            char[] cleanChars = new char[line.Length];
+                            int charCount = 0;
+                            for (int i = 0; i < line.Length; i++)
+                            {
+                                if (line[i] >= '0' && line[i] <= '9') cleanChars[charCount++] = line[i];
+                            }
+                            string cleanLine = new string(cleanChars, 0, charCount);
+
+                            foreach (string val in searchValues)
+                            {
+                                if (cleanLine.Contains(val))
+                                {
+                                    isMatch = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (isMatch)
+                        {
+                            writer.WriteLine(line);
+                            matchCount++;
+                        }
+
+                        if (updateCounter >= 5000)
+                        {
+                            updateCounter = 0;
+                            progressValue = (int)((bytesRead * 100) / totalBytes);
+                            if (progressValue > 100) progressValue = 100;
+
+                            lblProgressPercent.Text = $"{progressValue}%";
+                            lblProgressText.Text = $"סורק שורה {lineNo:N0}... | נמצאו: {matchCount}";
+                            
+                            pnlCustomProgress.Invalidate(); // ציור מחדש של הגרדיאנט
+                            Application.DoEvents(); 
+                        }
+                    }
+
+                    progressValue = 100;
+                    pnlCustomProgress.Invalidate();
+                }
+
+                ShowToast($"🟢 Extraction completed successfully | חולצו {matchCount} שורות", colorSuccess, Color.White);
+                MessageBox.Show($"🎉 החילוץ לפנקס רשימות הסתיים בהצלחה!\n\nהקובץ החדש מחכה לך בנתיב המבוקש:\n{outputPath}", "Success - NM Software", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                btnExtract.Enabled = true;
+                btnScan.Enabled = true;
+                btnBrowseOutput.Enabled = true;
+                btnAdd.Enabled = true;
+                ValidateForm();
+            }
+            catch (Exception ex)
+            {
+                ShowToast("🔴 שגיאה חמורה במהלך סריקת הקובץ", colorDanger, Color.White);
+                MessageBox.Show("שגיאה:\n" + ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                
+                btnExtract.Enabled = true;
+                btnScan.Enabled = true;
+                btnBrowseOutput.Enabled = true;
+                btnAdd.Enabled = true;
+                ValidateForm();
+            }
+        }
+    }
+}
+
