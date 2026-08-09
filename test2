@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -11,17 +12,15 @@ using Microsoft.SqlServer.Dts.Runtime;
 #endregion
 
 // =====================================================================
-//  NM Extractor Studio  —  interactive phone-number extractor
-//  Hosted inside an SSIS Script Task (runs via dtexec, so no .exe is
-//  deployed and AppLocker is not triggered).
+//  NM Extractor Studio  —  מחלץ מספרי טלפון אינטראקטיבי (עברית / RTL)
+//  רץ בתוך Script Task של SSIS (דרך dtexec, בלי .exe -> בלי AppLocker).
 //
-//  This is the ORIGINAL interactive flow (browse folder -> pick file ->
-//  add numbers -> Start), re-skinned as a modern flat WinForms UI.
-//  Reads with Windows-1255 (Hebrew) and writes matching lines to
-//  search_results_notepad.txt in the chosen output folder.
+//  זרימה כמו במקור: מדביקים נתיב תיקייה -> "טען קבצים" -> בוחרים קובץ ->
+//  מוסיפים מספרים -> "התחל חילוץ". קורא ב-Windows-1255 (עברית) וכותב את
+//  השורות התואמות ל-search_results_notepad.txt בתיקיית היעד.
 //
-//  If System.Windows.Forms / System.Drawing are not already referenced
-//  in the Script Task project, add them under Project -> References.
+//  אם System.Windows.Forms / System.Drawing לא מופיעים ב-References של
+//  ה-Script Task — הוסף אותם ב-Project -> Add Reference.
 // =====================================================================
 
 namespace ST_PhoneExtractor
@@ -31,21 +30,34 @@ namespace ST_PhoneExtractor
     {
         public void Main()
         {
-            try
+            Exception uiError = null;
+
+            // WinForms + דיאלוגים של תיקייה חייבים thread מסוג STA.
+            // ב-Script Task ה-thread ברירת המחדל הוא MTA -> הדיאלוג נתקע.
+            var t = new Thread(() =>
             {
-                System.Windows.Forms.Application.EnableVisualStyles();
-                System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                using (var form = new MainForm())
+                try
                 {
-                    form.ShowDialog();
+                    System.Windows.Forms.Application.EnableVisualStyles();
+                    System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
+                    using (var form = new MainForm())
+                        System.Windows.Forms.Application.Run(form);
                 }
-                Dts.TaskResult = (int)ScriptResults.Success;
-            }
-            catch (Exception ex)
+                catch (Exception ex) { uiError = ex; }
+            });
+            t.SetApartmentState(ApartmentState.STA);
+            t.Start();
+            t.Join();
+
+            if (uiError != null)
             {
                 Dts.Events.FireError(0, "PhoneExtractor",
-                    ex.Message + Environment.NewLine + ex.StackTrace, "", 0);
+                    uiError.Message + Environment.NewLine + uiError.StackTrace, "", 0);
                 Dts.TaskResult = (int)ScriptResults.Failure;
+            }
+            else
+            {
+                Dts.TaskResult = (int)ScriptResults.Success;
             }
         }
 
@@ -59,7 +71,7 @@ namespace ST_PhoneExtractor
     }
 
     // =================================================================
-    //  Palette (from the UI spec)
+    //  פלטת צבעים (מהאפיון)
     // =================================================================
     internal static class Palette
     {
@@ -79,9 +91,6 @@ namespace ST_PhoneExtractor
         public static readonly Color Track     = ColorTranslator.FromHtml("#EEF1F6");
     }
 
-    // =================================================================
-    //  Rounded-shape helper
-    // =================================================================
     internal static class Draw
     {
         public static GraphicsPath Round(Rectangle r, int radius)
@@ -98,16 +107,10 @@ namespace ST_PhoneExtractor
         }
     }
 
-    // White rounded "card" panel with a light border.
     internal class Card : Panel
     {
         public int Radius = 12;
-        public Card()
-        {
-            DoubleBuffered = true;
-            BackColor = Palette.Bg;   // corners blend into the form
-            Padding = new Padding(18);
-        }
+        public Card() { DoubleBuffered = true; BackColor = Palette.Bg; }
         protected override void OnPaint(PaintEventArgs e)
         {
             e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -123,14 +126,12 @@ namespace ST_PhoneExtractor
         }
     }
 
-    // Modern flat, rounded button.
     internal class FlatBtn : Button
     {
         public int Radius = 10;
         public Color Fill = Palette.Primary;
         public Color FillHover = Palette.PrimaryDk;
         private bool _hover;
-
         public FlatBtn()
         {
             FlatStyle = FlatStyle.Flat;
@@ -158,11 +159,10 @@ namespace ST_PhoneExtractor
         }
     }
 
-    // Rounded bordered wrapper hosting a borderless TextBox, with focus highlight.
     internal class InputBox : Panel
     {
         public TextBox Box = new TextBox();
-        public InputBox()
+        public InputBox(bool rtlText)
         {
             DoubleBuffered = true;
             BackColor = Palette.Card;
@@ -171,6 +171,7 @@ namespace ST_PhoneExtractor
             Box.BackColor = Palette.Card;
             Box.ForeColor = Palette.Text;
             Box.Font = new Font("Segoe UI", 11f);
+            Box.RightToLeft = rtlText ? RightToLeft.Yes : RightToLeft.No;
             Box.Dock = DockStyle.Fill;
             var host = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Card, Padding = new Padding(12, 9, 12, 0) };
             host.Controls.Add(Box);
@@ -193,7 +194,6 @@ namespace ST_PhoneExtractor
         }
     }
 
-    // Custom gradient progress bar.
     internal class GradientBar : Panel
     {
         private int _value;
@@ -219,7 +219,7 @@ namespace ST_PhoneExtractor
     }
 
     // =================================================================
-    //  The window
+    //  החלון
     // =================================================================
     internal class MainForm : Form
     {
@@ -230,29 +230,35 @@ namespace ST_PhoneExtractor
         private GradientBar _bar;
         private FlatBtn _start;
         private readonly List<PhoneItem> _phones = new List<PhoneItem>();
-        private string _targetFolder = "";
 
         public MainForm()
         {
             Text = "NM Extractor Studio";
             BackColor = Palette.Bg;
             Font = new Font("Segoe UI", 9.5f);
+            RightToLeft = RightToLeft.Yes;   // ממשק ימין-לשמאל
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(640, 780);
+            ClientSize = new Size(640, 790);
             BuildUi();
             _outPath.Box.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
             RefreshChips();
             Revalidate();
         }
 
+        private Label RLabel(string text, Font font, Color color, Rectangle b)
+        {
+            return new Label { Text = text, Font = font, ForeColor = color, AutoSize = false,
+                Bounds = b, TextAlign = ContentAlignment.MiddleRight, BackColor = Color.Transparent };
+        }
+
         private void BuildUi()
         {
             int x = 24, w = 592, y = 22;
 
-            // ---------- header ----------
-            var logo = new Panel { Bounds = new Rectangle(x, y, 48, 48), BackColor = Palette.Bg };
+            // ---------- כותרת (לוגו מימין) ----------
+            var logo = new Panel { Bounds = new Rectangle(x + w - 48, y, 48, 48), BackColor = Palette.Bg };
             logo.Paint += (s, e) =>
             {
                 e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
@@ -264,123 +270,136 @@ namespace ST_PhoneExtractor
                     TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             };
             Controls.Add(logo);
-            Controls.Add(new Label { Text = "NM Extractor Studio", Font = new Font("Segoe UI", 18f, FontStyle.Bold),
-                ForeColor = Palette.Text, AutoSize = true, Location = new Point(x + 60, y - 2), BackColor = Color.Transparent });
-            Controls.Add(new Label { Text = "Professional Data Extraction Suite", Font = new Font("Segoe UI", 9.5f),
-                ForeColor = Palette.Muted, AutoSize = true, Location = new Point(x + 62, y + 28), BackColor = Color.Transparent });
-            y += 74;
+            var titleLbl = RLabel("NM Extractor Studio", new Font("Segoe UI", 18f, FontStyle.Bold), Palette.Text,
+                new Rectangle(x, y - 2, w - 60, 30));
+            var subLbl = RLabel("כלי מקצועי לחילוץ נתונים", new Font("Segoe UI", 9.5f), Palette.Muted,
+                new Rectangle(x, y + 30, w - 60, 20));
+            Controls.Add(titleLbl); Controls.Add(subLbl);
+            y += 78;
 
-            // ---------- card 1: source ----------
-            var c1 = new Card { Bounds = new Rectangle(x, y, w, 150) };
-            AddCardTitle(c1, "Source Folder", "Choose the folder and the file to scan");
-            _srcPath = new InputBox { Bounds = new Rectangle(18, 56, w - 130, 40) };
-            var browseSrc = new FlatBtn { Text = "Browse", Bounds = new Rectangle(w - 104, 56, 86, 40),
-                Fill = Palette.Card, FillHover = Palette.Bg, ForeColor = Palette.Text };
-            browseSrc.Click += (s, e) => BrowseFolder(_srcPath.Box, true);
-            _files = new ComboBox { Bounds = new Rectangle(18, 104, w - 36, 28), DropDownStyle = ComboBoxStyle.DropDownList,
-                FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI", 10f) };
+            // ---------- כרטיס 1: תיקיית מקור ----------
+            var c1 = new Card { Bounds = new Rectangle(x, y, w, 152) };
+            AddCardTitle(c1, "תיקיית מקור", "הדבק את נתיב התיקייה ולחץ \"טען קבצים\"");
+            var loadBtn = new FlatBtn { Text = "טען קבצים", Bounds = new Rectangle(18, 60, 110, 40) };
+            _srcPath = new InputBox(false) { Bounds = new Rectangle(138, 60, w - 18 - 138, 40) };
+            _srcPath.Box.Text = @"C:\Users\netanelma\Desktop\extractid";
+            loadBtn.Click += (s, e) => ScanFolder();
+            _files = new ComboBox { Bounds = new Rectangle(18, 110, w - 36, 28),
+                DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 10f), RightToLeft = RightToLeft.Yes };
             _files.SelectedIndexChanged += (s, e) => Revalidate();
-            c1.Controls.Add(_srcPath); c1.Controls.Add(browseSrc); c1.Controls.Add(_files);
+            c1.Controls.Add(loadBtn); c1.Controls.Add(_srcPath); c1.Controls.Add(_files);
             Controls.Add(c1);
-            y += 166;
+            y += 168;
 
-            // ---------- card 2: output ----------
-            var c2 = new Card { Bounds = new Rectangle(x, y, w, 108) };
-            AddCardTitle(c2, "Output Location", "Where the results file will be saved");
-            _outPath = new InputBox { Bounds = new Rectangle(18, 56, w - 130, 40) };
-            _outPath.Box.TextChanged += (s, e) => Revalidate();
-            var browseOut = new FlatBtn { Text = "Browse", Bounds = new Rectangle(w - 104, 56, 86, 40),
+            // ---------- כרטיס 2: תיקיית יעד ----------
+            var c2 = new Card { Bounds = new Rectangle(x, y, w, 110) };
+            AddCardTitle(c2, "תיקיית יעד", "המיקום שבו יישמר קובץ התוצאות");
+            var browseOut = new FlatBtn { Text = "עיון", Bounds = new Rectangle(18, 60, 110, 40),
                 Fill = Palette.Card, FillHover = Palette.Bg, ForeColor = Palette.Text };
-            browseOut.Click += (s, e) => BrowseFolder(_outPath.Box, false);
-            c2.Controls.Add(_outPath); c2.Controls.Add(browseOut);
+            _outPath = new InputBox(false) { Bounds = new Rectangle(138, 60, w - 18 - 138, 40) };
+            _outPath.Box.TextChanged += (s, e) => Revalidate();
+            browseOut.Click += (s, e) => BrowseOutput();
+            c2.Controls.Add(browseOut); c2.Controls.Add(_outPath);
             Controls.Add(c2);
-            y += 124;
+            y += 126;
 
-            // ---------- card 3: phones ----------
-            var c3 = new Card { Bounds = new Rectangle(x, y, w, 170) };
-            AddCardTitle(c3, "Phone Numbers", "Add the numbers you want to find in the file");
-            _phone = new InputBox { Bounds = new Rectangle(18, 56, w - 130, 40) };
+            // ---------- כרטיס 3: מספרי טלפון ----------
+            var c3 = new Card { Bounds = new Rectangle(x, y, w, 172) };
+            AddCardTitle(c3, "מספרי טלפון", "הוסף את המספרים שברצונך למצוא בקובץ");
+            var add = new FlatBtn { Text = "הוסף", Bounds = new Rectangle(18, 60, 110, 40) };
+            _phone = new InputBox(false) { Bounds = new Rectangle(138, 60, w - 18 - 138, 40) };
             _phone.Box.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { AddPhone(); e.SuppressKeyPress = true; } };
-            var add = new FlatBtn { Text = "+  Add", Bounds = new Rectangle(w - 104, 56, 86, 40) };
             add.Click += (s, e) => AddPhone();
-            _chips = new FlowLayoutPanel { Bounds = new Rectangle(18, 104, w - 36, 50), AutoScroll = true, BackColor = Palette.Card };
-            _empty = new Label { Text = "No numbers added yet", ForeColor = Palette.Muted, Font = new Font("Segoe UI", 9f, FontStyle.Italic),
-                AutoSize = true, Location = new Point(20, 108), BackColor = Palette.Card };
-            c3.Controls.Add(_phone); c3.Controls.Add(add); c3.Controls.Add(_chips); c3.Controls.Add(_empty);
+            _chips = new FlowLayoutPanel { Bounds = new Rectangle(18, 110, w - 36, 52), AutoScroll = true,
+                BackColor = Palette.Card, RightToLeft = RightToLeft.Yes };
+            _empty = RLabel("לא נוספו מספרים עדיין", new Font("Segoe UI", 9f, FontStyle.Italic), Palette.Muted,
+                new Rectangle(16, 112, w - 32, 24));
+            _empty.BackColor = Palette.Card;
+            c3.Controls.Add(add); c3.Controls.Add(_phone); c3.Controls.Add(_chips); c3.Controls.Add(_empty);
             _empty.BringToFront();
             Controls.Add(c3);
-            y += 186;
+            y += 188;
 
-            // ---------- progress ----------
-            _progLabel = new Label { Text = "Waiting for input", ForeColor = Palette.Text, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                AutoSize = true, Location = new Point(x + 2, y), BackColor = Color.Transparent };
+            // ---------- התקדמות ----------
+            _progLabel = RLabel("ממתין לקלט", new Font("Segoe UI", 9f, FontStyle.Bold), Palette.Text,
+                new Rectangle(x + 44, y, w - 44, 20));
             _progPct = new Label { Text = "0%", ForeColor = Palette.Success, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                AutoSize = true, Location = new Point(x + w - 40, y), BackColor = Color.Transparent };
+                AutoSize = false, Bounds = new Rectangle(x, y, 44, 20), TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.Transparent };
             _bar = new GradientBar { Bounds = new Rectangle(x, y + 22, w, 12) };
             Controls.Add(_progLabel); Controls.Add(_progPct); Controls.Add(_bar);
             y += 48;
 
-            // ---------- status ----------
-            _status = new Label { Text = "Waiting for input - add a file and at least one number",
-                ForeColor = Palette.Text, Font = new Font("Segoe UI", 9.5f), AutoSize = false,
-                Bounds = new Rectangle(x, y, w, 26), TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent };
+            // ---------- סטטוס ----------
+            _status = RLabel("ממתין לקלט - הוסף קובץ ולפחות מספר אחד", new Font("Segoe UI", 9.5f), Palette.Text,
+                new Rectangle(x, y, w, 26));
             Controls.Add(_status);
             y += 38;
 
-            // ---------- start ----------
-            _start = new FlatBtn { Text = "Start extraction", Bounds = new Rectangle(x + (w - 300) / 2, y, 300, 50),
+            // ---------- התחלה ----------
+            _start = new FlatBtn { Text = "התחל חילוץ", Bounds = new Rectangle(x + (w - 300) / 2, y, 300, 50),
                 Font = new Font("Segoe UI", 11f, FontStyle.Bold), Radius = 12, Enabled = false };
             _start.Click += (s, e) => StartExtraction();
             Controls.Add(_start);
             y += 62;
 
-            Controls.Add(new Label { Text = "NM Software  -  Professional Edition  -  2026", ForeColor = Palette.Muted,
+            Controls.Add(new Label { Text = "NM Software  ·  מהדורה מקצועית  ·  2026", ForeColor = Palette.Muted,
                 Font = new Font("Segoe UI", 8.5f), AutoSize = false, Bounds = new Rectangle(x, y, w, 20),
                 TextAlign = ContentAlignment.MiddleCenter, BackColor = Color.Transparent });
         }
 
         private void AddCardTitle(Card card, string title, string desc)
         {
-            card.Controls.Add(new Label { Text = title, Font = new Font("Segoe UI", 11.5f, FontStyle.Bold),
-                ForeColor = Palette.Text, AutoSize = true, Location = new Point(16, 14), BackColor = Palette.Card });
-            card.Controls.Add(new Label { Text = desc, Font = new Font("Segoe UI", 8.5f),
-                ForeColor = Palette.Muted, AutoSize = true, Location = new Point(16, 34), BackColor = Palette.Card });
+            card.Controls.Add(RLabel(title, new Font("Segoe UI", 11.5f, FontStyle.Bold), Palette.Text,
+                new Rectangle(16, 14, card.Width - 32, 22)));
+            card.Controls.Add(RLabel(desc, new Font("Segoe UI", 8.5f), Palette.Muted,
+                new Rectangle(16, 36, card.Width - 32, 18)));
         }
 
-        // ---------- folder browse ----------
-        private void BrowseFolder(TextBox target, bool scan)
-        {
-            using (var dlg = new FolderBrowserDialog())
-            {
-                if (Directory.Exists(target.Text)) dlg.SelectedPath = target.Text;
-                if (dlg.ShowDialog() == DialogResult.OK)
-                {
-                    target.Text = dlg.SelectedPath;
-                    if (scan) ScanFolder();
-                }
-            }
-        }
-
+        // ---------- טעינת קבצים מהנתיב שהודבק ----------
         private void ScanFolder()
         {
             _files.Items.Clear();
-            _targetFolder = _srcPath.Box.Text.Trim();
-            if (Directory.Exists(_targetFolder))
+            string folder = _srcPath.Box.Text.Trim().Trim('"');
+            if (!Directory.Exists(folder))
             {
-                foreach (var f in Directory.GetFiles(_targetFolder))
-                    _files.Items.Add(Path.GetFileName(f));
-                if (_files.Items.Count > 0) _files.SelectedIndex = 0;
+                SetStatus("התיקייה לא נמצאה - בדוק את הנתיב", Palette.Danger);
+                Revalidate();
+                return;
+            }
+            foreach (var f in Directory.GetFiles(folder))
+                _files.Items.Add(Path.GetFileName(f));
+
+            if (_files.Items.Count > 0)
+            {
+                _files.SelectedIndex = 0;
+                SetStatus("נטענו " + _files.Items.Count + " קבצים - בחר קובץ", Palette.Success);
+            }
+            else
+            {
+                SetStatus("התיקייה ריקה", Palette.Warning);
             }
             Revalidate();
         }
 
-        // ---------- phones / chips ----------
+        private void BrowseOutput()
+        {
+            using (var dlg = new FolderBrowserDialog())
+            {
+                if (Directory.Exists(_outPath.Box.Text)) dlg.SelectedPath = _outPath.Box.Text;
+                if (dlg.ShowDialog() == DialogResult.OK)
+                    _outPath.Box.Text = dlg.SelectedPath;
+            }
+        }
+
+        // ---------- מספרים / chips ----------
         private void AddPhone()
         {
             string raw = _phone.Box.Text.Trim();
             string clean = DigitsOnly(raw);
-            if (clean.Length == 0) { SetStatus("Enter a valid phone number", Palette.Danger); return; }
-            foreach (var p in _phones) if (p.Clean == clean) { SetStatus("That number is already in the list", Palette.Warning); return; }
+            if (clean.Length == 0) { SetStatus("הכנס מספר טלפון תקין", Palette.Danger); return; }
+            foreach (var p in _phones) if (p.Clean == clean) { SetStatus("המספר כבר קיים ברשימה", Palette.Warning); return; }
             _phones.Add(new PhoneItem { Raw = raw, Clean = clean });
             _phone.Box.Clear(); _phone.Box.Focus();
             RefreshChips(); Revalidate();
@@ -392,15 +411,16 @@ namespace ST_PhoneExtractor
             foreach (var p in _phones)
             {
                 var item = p;
-                var chip = new Panel { Height = 30, BackColor = Palette.Chip, Margin = new Padding(0, 0, 8, 8) };
+                var chip = new Panel { Height = 30, BackColor = Palette.Chip, Margin = new Padding(0, 0, 8, 8),
+                    RightToLeft = RightToLeft.Yes };
+                var close = new Label { Text = "✕", ForeColor = Palette.ChipText, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
+                    AutoSize = true, Cursor = Cursors.Hand, BackColor = Palette.Chip, Location = new Point(10, 6) };
                 var lbl = new Label { Text = item.Raw, ForeColor = Palette.ChipText, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                    AutoSize = true, Location = new Point(12, 6), BackColor = Palette.Chip };
-                var close = new Label { Text = "x", ForeColor = Palette.ChipText, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                    AutoSize = true, Cursor = Cursors.Hand, BackColor = Palette.Chip };
-                chip.Controls.Add(lbl);
+                    AutoSize = true, BackColor = Palette.Chip };
                 chip.Controls.Add(close);
-                chip.Width = lbl.PreferredWidth + 44;
-                close.Location = new Point(chip.Width - 22, 6);
+                chip.Controls.Add(lbl);
+                chip.Width = lbl.PreferredWidth + 46;
+                lbl.Location = new Point(30, 6);
                 close.Click += (s, e) => { _phones.Remove(item); RefreshChips(); Revalidate(); };
                 chip.Paint += (s, e) =>
                 {
@@ -414,14 +434,15 @@ namespace ST_PhoneExtractor
             _empty.Visible = _phones.Count == 0;
         }
 
-        // ---------- validation / status ----------
+        // ---------- ולידציה / סטטוס ----------
         private void Revalidate()
         {
             bool ok = _files.SelectedIndex >= 0 && _phones.Count > 0 &&
                       !string.IsNullOrEmpty(_outPath.Box.Text.Trim());
             _start.Enabled = ok;
-            if (ok) SetStatus("Ready to extract", Palette.Success);
-            else SetStatus("Waiting for input - add a file and at least one number", Palette.Muted);
+            if (ok) SetStatus("מוכן לחילוץ", Palette.Success);
+            else if (_status != null && _status.ForeColor == Palette.Danger) { /* השאר הודעת שגיאה קיימת */ }
+            else SetStatus("ממתין לקלט - הוסף קובץ ולפחות מספר אחד", Palette.Muted);
         }
 
         private void SetStatus(string text, Color color)
@@ -430,21 +451,22 @@ namespace ST_PhoneExtractor
             _status.ForeColor = (color == Palette.Muted) ? Palette.Text : color;
         }
 
-        // ---------- extraction ----------
+        // ---------- חילוץ ----------
         private void StartExtraction()
         {
             string selected = _files.SelectedItem as string;
             if (selected == null) return;
-            string sourcePath = Path.Combine(_targetFolder, selected);
+            string folder = _srcPath.Box.Text.Trim().Trim('"');
+            string sourcePath = Path.Combine(folder, selected);
             string outputFolder = _outPath.Box.Text.Trim();
-            if (!File.Exists(sourcePath)) { SetStatus("Source file was not found on disk", Palette.Danger); return; }
-            if (!Directory.Exists(outputFolder)) { SetStatus("Output folder does not exist", Palette.Danger); return; }
+            if (!File.Exists(sourcePath)) { SetStatus("קובץ המקור לא נמצא בדיסק", Palette.Danger); return; }
+            if (!Directory.Exists(outputFolder)) { SetStatus("תיקיית היעד לא קיימת", Palette.Danger); return; }
 
             string outputPath = Path.Combine(outputFolder, "search_results_notepad.txt");
             var terms = new List<PhoneItem>(_phones);
 
             _start.Enabled = false;
-            _progLabel.Text = "Processing...";
+            _progLabel.Text = "מעבד...";
             _bar.Value = 0;
 
             var worker = new BackgroundWorker { WorkerReportsProgress = true };
@@ -458,14 +480,14 @@ namespace ST_PhoneExtractor
             {
                 if (e.Error != null)
                 {
-                    SetStatus("Extraction failed: " + e.Error.Message, Palette.Danger);
+                    SetStatus("החילוץ נכשל: " + e.Error.Message, Palette.Danger);
                 }
                 else
                 {
                     _bar.Value = 100; _progPct.Text = "100%";
-                    _progLabel.Text = "Completed";
+                    _progLabel.Text = "הושלם";
                     int matches = (int)e.Result;
-                    SetStatus("Extraction completed - " + matches.ToString("N0") + " rows saved", Palette.Success);
+                    SetStatus("החילוץ הושלם - " + matches.ToString("N0") + " שורות נשמרו", Palette.Success);
                 }
                 _start.Enabled = true;
             };
@@ -474,7 +496,7 @@ namespace ST_PhoneExtractor
 
         private static int Extract(string sourcePath, string outputPath, List<PhoneItem> terms, BackgroundWorker worker)
         {
-            Encoding enc = Encoding.GetEncoding(1255); // Hebrew - built in on the .NET Framework SSIS hosts
+            Encoding enc = Encoding.GetEncoding(1255); // עברית - מובנה ב-.NET Framework של SSIS
             long total = new FileInfo(sourcePath).Length;
             long bytesRead = 0;
             int matches = 0, tick = 0, lastPct = -1;
