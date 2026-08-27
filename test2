@@ -1,541 +1,922 @@
-#region Namespaces
 using System;
-using System.IO;
-using System.Text;
-using System.Threading;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Drawing.Drawing2D;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Automation;
 using System.Windows.Forms;
-using Microsoft.SqlServer.Dts.Runtime;
-#endregion
+using Excel = Microsoft.Office.Interop.Excel;
 
-// =====================================================================
-//  NM Extractor Studio  —  מחלץ מספרי טלפון אינטראקטיבי (עברית / RTL)
-//  רץ בתוך Script Task של SSIS (דרך dtexec, בלי .exe -> בלי AppLocker).
-//
-//  זרימה: מדביקים נתיב תיקייה -> "טען קבצים" -> בוחרים קובץ ->
-//  מוסיפים מספרים -> "התחל חילוץ". קורא ב-Windows-1255 (עברית) וכותב
-//  את השורות התואמות ל-search_results_notepad.txt בתיקיית היעד.
-//
-//  אם System.Windows.Forms / System.Drawing חסרים ב-References של
-//  ה-Script Task — הוסף אותם ב-Project -> Add Reference.
-// =====================================================================
-
-namespace ST_PhoneExtractor
+class Program
 {
-    [Microsoft.SqlServer.Dts.Tasks.ScriptTask.SSISScriptTaskEntryPointAttribute]
-    public partial class ScriptMain : Microsoft.SqlServer.Dts.Tasks.ScriptTask.VSTARTScriptObjectModelBase
-    {
-        public void Main()
-        {
-            Exception uiError = null;
+    static string baseFolder = @"\\100.100.100.6\Root\HomeFolder\Shared\תפעול\אלטשולר\מעברים שהוקמו מאקסמאל";
 
-            // WinForms + דיאלוג תיקייה חייבים thread מסוג STA.
-            // ב-Script Task ברירת המחדל היא MTA -> הדיאלוג נתקע.
-            var t = new Thread(() =>
+    [DllImport("user32.dll")]
+    static extern bool SetCursorPos(int x, int y);
+
+    [DllImport("user32.dll")]
+    static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
+
+    [DllImport("user32.dll")]
+    static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    const uint MOUSEEVENTF_LEFTDOWN = 0x0002;
+    const uint MOUSEEVENTF_LEFTUP = 0x0004;
+
+    [STAThread]
+    static void Main()
+    {
+        string exePath = @"C:\Users\netanelma\Desktop\מנוע דוחות.exe";
+
+        Console.WriteLine("מחפש את תיקיית היום...");
+        string todayFolder = FindTodayFolder(baseFolder);
+        string xmlFilePath = null;
+        if (todayFolder != null)
+        {
+            string[] xmlFiles = Directory.GetFiles(todayFolder, "*.xml", SearchOption.AllDirectories);
+            if (xmlFiles.Length > 0)
             {
-                try
+                xmlFilePath = xmlFiles[0];
+                Console.WriteLine("מצאתי קובץ XML: " + xmlFilePath);
+            }
+        }
+        Console.WriteLine(new string('=', 60));
+
+        Console.WriteLine("פותח את התוכנה...");
+        Process proc = Process.Start(exePath);
+        try { proc.WaitForInputIdle(5000); } catch { }
+
+        AutomationElement reportWindow = FindWindowByProcessId(proc.Id, 15);
+        if (reportWindow == null) { Console.WriteLine("לא מצאתי חלון."); Console.ReadLine(); return; }
+
+        Console.WriteLine("בוחר קטגוריה 'עדכונים-תפעול'...");
+        SelectItemInside(reportWindow, "cmbCategory", "עדכונים-תפעול");
+        Thread.Sleep(1500);
+
+        Console.WriteLine("בוחר את הדוח 'קליטת מעברים מXML'...");
+        SelectItemInside(reportWindow, "lstReports", "קליטת מעברים מXML");
+        Thread.Sleep(500);
+
+        var handlesBefore1 = GetWindowHandlesForProcess(proc.Id);
+        Console.WriteLine("לוחץ על 'בחירת דוח'...");
+        ClickButton(reportWindow, "btnChooseReport");
+
+        AutomationElement nextWindow = FindNewWindowByHandle(proc.Id, handlesBefore1, 20);
+        if (nextWindow == null) { Console.WriteLine("לא נפתח חלון נוסף."); Console.ReadLine(); return; }
+        Console.WriteLine("נמצא חלון: '" + nextWindow.Current.Name + "'");
+
+        Console.WriteLine("ממלא סיסמה...");
+        SetTextValue(nextWindow, "Password", "951753");
+
+        BringToFront(nextWindow);
+        Thread.Sleep(300);
+
+        Console.WriteLine("לוחץ על 'פתיחת קובץ'...");
+        ClickButton(nextWindow, "btnExcel");
+        Thread.Sleep(1500);
+
+        // *** השינוי המרכזי: בלי סינון לפי תהליך (pid) בכלל ***
+        string targetTitle = "בדיקת XML וטעינתו למערכת";
+        AutomationElement fileWindow = FindWindowByTitleAnyProcess(nextWindow, targetTitle, 6);
+
+        if (fileWindow == null)
+        {
+            Console.WriteLine("לא נמצא לפי שם - מנסה גם לחיצת עכבר אמיתית...");
+            AutomationElement btn = nextWindow.FindFirst(TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.AutomationIdProperty, "btnExcel"));
+            if (btn != null)
+            {
+                RealClick(btn);
+                Thread.Sleep(1000);
+                fileWindow = FindWindowByTitleAnyProcess(nextWindow, targetTitle, 8);
+            }
+        }
+
+        if (fileWindow == null)
+        {
+            Console.WriteLine("עדיין לא נמצא. תגיד לי בדיוק איך כתוב שם החלון אצלך.");
+            Console.WriteLine("לחץ Enter לסגירה...");
+            Console.ReadLine();
+            return;
+        }
+
+        Console.WriteLine("נמצא חלון: '" + fileWindow.Current.Name + "'");
+
+        if (!string.IsNullOrEmpty(xmlFilePath))
+        {
+            Console.WriteLine("ממלא את נתיב קובץ ה-XML...");
+            SetTextValue(fileWindow, "txtXML", xmlFilePath);
+        }
+
+        // *** מוצאים את קובץ ה-XSD הקבוע (נמצא ישירות בתיקיית הבסיס, לא בתיקיית היום) ***
+        string xsdFilePath = null;
+        try
+        {
+            string[] xsdFiles = Directory.GetFiles(baseFolder, "*.xsd");
+            if (xsdFiles.Length > 0) xsdFilePath = xsdFiles[0];
+        }
+        catch (Exception ex) { Console.WriteLine("(!) שגיאה בחיפוש XSD: " + ex.Message); }
+
+        if (xsdFilePath == null)
+        {
+            Console.WriteLine("(!) לא מצאתי קובץ XSD בתיקיית הבסיס. עוצר כאן.");
+            Console.ReadLine();
+            return;
+        }
+
+        Console.WriteLine("מצאתי קובץ XSD: " + xsdFilePath);
+        Console.WriteLine("ממלא את נתיב קובץ ה-XSD...");
+        SetTextValue(fileWindow, "txtXSD", xsdFilePath);
+        Thread.Sleep(500);
+
+        Console.WriteLine("לוחץ על 'בדיקה מול XSD'...");
+        ClickButton(fileWindow, "btnCheckXmlVsXsd");
+        Console.WriteLine("ממתין לחלון אישור אפשרי...");
+        HandleConfirmationPopup(6);
+
+        Thread.Sleep(1000);
+
+        Console.WriteLine("לוחץ על 'עדכון דוח 816-עמיתים'...");
+        ClickButton(fileWindow, "btnUpdateReport");
+        Console.WriteLine("ממתין לחלון 'כן/לא'...");
+        HandleConfirmationPopup(6);
+
+        Thread.Sleep(1000);
+        Console.WriteLine("ממתין לחלון אישור נוסף...");
+        HandleConfirmationPopup(6);
+
+        // נותנים לחלון הזה זמן להיסגר ולחזור למסך הקודם
+        Thread.Sleep(1500);
+
+        Console.WriteLine("מסמן 'שמירה בסיום' במסך הקודם...");
+        SetCheckBox(nextWindow, "chkSaveFileAtEnd", true);
+
+        Thread.Sleep(500);
+        Console.WriteLine("לוחץ על 'יצוא לאקסל' (מריץ את הדוח בפועל)...");
+        ClickButton(nextWindow, "btnExportExcel");
+
+        Console.WriteLine("ממתין לחלון 'שמירה בסיום'...");
+        AutomationElement saveWindow = FindWindowByTitleAnyProcess(nextWindow, "שמירה בסיום ההרצה", 20);
+
+        if (saveWindow == null)
+        {
+            Console.WriteLine("(!) לא נמצא חלון בשם 'שמירה בסיום הרצה'.");
+            Console.WriteLine("    הנה כל שמות החלונות שכן קיימים כרגע - חפש שם משהו דומה:");
+            Console.WriteLine(new string('-', 60));
+
+            Console.WriteLine("    חלונות עצמאיים:");
+            AutomationElementCollection topWindows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+            foreach (AutomationElement w in topWindows)
+            {
+                string n = w.Current.Name;
+                if (!string.IsNullOrWhiteSpace(n)) Console.WriteLine("       - '" + n + "'");
+            }
+
+            Console.WriteLine("    חלונות פנימיים בתוך 'דוח 1152':");
+            AutomationElementCollection innerWindows = nextWindow.FindAll(TreeScope.Descendants,
+                new PropertyCondition(AutomationElement.ControlTypeProperty, ControlType.Window));
+            foreach (AutomationElement w in innerWindows)
+            {
+                string n = w.Current.Name;
+                if (!string.IsNullOrWhiteSpace(n)) Console.WriteLine("       - '" + n + "'");
+            }
+        }
+        else
+        {
+            Console.WriteLine("נמצא חלון: '" + saveWindow.Current.Name + "'");
+
+            BringToFront(saveWindow);
+            Thread.Sleep(400);
+
+            var handlesBeforeBrowse = GetAllTopWindowHandles();
+            Console.WriteLine("לוחץ על 'סייר...'...");
+            ClickButton(saveWindow, "btnBrowse");
+
+            AutomationElement browseDialog = FindNewTopWindowAny(handlesBeforeBrowse, 5)
+                ?? FindWindowByTitleAnyProcess(saveWindow, "Save As", 5)
+                ?? FindWindowByTitleAnyProcess(nextWindow, "Save As", 5);
+
+            if (browseDialog == null)
+            {
+                Console.WriteLine("לא נמצא - מנסה לחיצת עכבר אמיתית על 'סייר...'...");
+                AutomationElement browseBtn = saveWindow.FindFirst(TreeScope.Descendants,
+                    new PropertyCondition(AutomationElement.AutomationIdProperty, "btnBrowse"));
+                if (browseBtn != null)
                 {
-                    System.Windows.Forms.Application.EnableVisualStyles();
-                    System.Windows.Forms.Application.SetCompatibleTextRenderingDefault(false);
-                    using (var form = new MainForm())
-                        System.Windows.Forms.Application.Run(form);
+                    RealClick(browseBtn);
+                    browseDialog = FindNewTopWindowAny(handlesBeforeBrowse, 5)
+                                   ?? FindWindowByTitleAnyProcess(saveWindow, "Save As", 8)
+                                   ?? FindWindowByTitleAnyProcess(nextWindow, "Save As", 8);
                 }
-                catch (Exception ex) { uiError = ex; }
-            });
-            t.SetApartmentState(ApartmentState.STA);
-            t.Start();
-            t.Join();
+            }
 
-            if (uiError != null)
+            if (browseDialog == null)
             {
-                Dts.Events.FireError(0, "PhoneExtractor",
-                    uiError.Message + Environment.NewLine + uiError.StackTrace, "", 0);
-                Dts.TaskResult = (int)ScriptResults.Failure;
+                Console.WriteLine("(!) לא נפתח חלון סייר. עוצר כאן.");
             }
             else
             {
-                Dts.TaskResult = (int)ScriptResults.Success;
-            }
-        }
+                Console.WriteLine("נמצא חלון סייר: '" + browseDialog.Current.Name + "'");
+                BringToFront(browseDialog);
+                Thread.Sleep(500);
 
-        #region ScriptResults declaration
-        enum ScriptResults
-        {
-            Success = Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Success,
-            Failure = Microsoft.SqlServer.Dts.Runtime.DTSExecResult.Failure
-        };
-        #endregion
-    }
+                AutomationElement editBox = browseDialog.FindFirst(TreeScope.Descendants,
+                    new PropertyCondition(AutomationElement.AutomationIdProperty, "1001"));
 
-    // =================================================================
-    //  פלטת צבעים
-    // =================================================================
-    internal static class Palette
-    {
-        public static readonly Color Bg          = ColorTranslator.FromHtml("#F5F7FB");
-        public static readonly Color Card        = Color.White;
-        public static readonly Color Primary     = ColorTranslator.FromHtml("#2563EB");
-        public static readonly Color PrimaryDk   = ColorTranslator.FromHtml("#1D4ED8");
-        public static readonly Color Success     = ColorTranslator.FromHtml("#16A34A");
-        public static readonly Color Success2    = ColorTranslator.FromHtml("#22C55E");
-        public static readonly Color Warning     = ColorTranslator.FromHtml("#F59E0B");
-        public static readonly Color Danger      = ColorTranslator.FromHtml("#DC2626");
-        public static readonly Color Text        = ColorTranslator.FromHtml("#111827");
-        public static readonly Color Muted       = ColorTranslator.FromHtml("#6B7280");
-        public static readonly Color Border      = ColorTranslator.FromHtml("#E5E7EB");
-        public static readonly Color InputBorder = ColorTranslator.FromHtml("#CBD5E1");
-        public static readonly Color Chip        = ColorTranslator.FromHtml("#EFF4FF");
-        public static readonly Color ChipText    = ColorTranslator.FromHtml("#1D4ED8");
-        public static readonly Color Track       = ColorTranslator.FromHtml("#EEF1F6");
-    }
-
-    internal static class Draw
-    {
-        public static GraphicsPath Round(Rectangle r, int radius)
-        {
-            int d = radius * 2;
-            var p = new GraphicsPath();
-            if (radius <= 0) { p.AddRectangle(r); p.CloseFigure(); return p; }
-            p.AddArc(r.X, r.Y, d, d, 180, 90);
-            p.AddArc(r.Right - d, r.Y, d, d, 270, 90);
-            p.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
-            p.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
-            p.CloseFigure();
-            return p;
-        }
-    }
-
-    internal class Card : Panel
-    {
-        public int Radius = 12;
-        public Card() { DoubleBuffered = true; BackColor = Palette.Bg; }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            var r = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (var path = Draw.Round(r, Radius))
-            using (var fill = new SolidBrush(Palette.Card))
-            using (var pen = new Pen(Palette.Border))
-            {
-                e.Graphics.FillPath(fill, path);
-                e.Graphics.DrawPath(pen, path);
-            }
-            base.OnPaint(e);
-        }
-    }
-
-    internal class FlatBtn : Button
-    {
-        public int Radius = 10;
-        public Color Fill = Palette.Primary;
-        public Color FillHover = Palette.PrimaryDk;
-        private bool _hover;
-        public FlatBtn()
-        {
-            FlatStyle = FlatStyle.Flat;
-            FlatAppearance.BorderSize = 0;
-            FlatAppearance.MouseOverBackColor = Color.Transparent;
-            FlatAppearance.MouseDownBackColor = Color.Transparent;
-            ForeColor = Color.White;
-            BackColor = Palette.Bg;
-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold);
-            Cursor = Cursors.Hand;
-            DoubleBuffered = true;
-        }
-        protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
-        protected override void OnMouseLeave(EventArgs e) { _hover = false; Invalidate(); base.OnMouseLeave(e); }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            e.Graphics.Clear(Parent != null ? Parent.BackColor : Palette.Bg);
-            var r = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (var path = Draw.Round(r, Radius))
-            using (var fill = new SolidBrush(Enabled ? (_hover ? FillHover : Fill) : Palette.Border))
-                e.Graphics.FillPath(fill, path);
-            TextRenderer.DrawText(e.Graphics, Text, Font, r, Enabled ? ForeColor : Palette.Muted,
-                TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
-        }
-    }
-
-    // תיבת קלט מעוגלת עם מסגרת נראית לעין (Padding משאיר "טבעת" שבה
-    // המסגרת מצוירת ולא מכוסה ע"י התיבה הפנימית).
-    internal class InputBox : Panel
-    {
-        public TextBox Box = new TextBox();
-        public InputBox(bool rtlText)
-        {
-            DoubleBuffered = true;
-            BackColor = Palette.Card;
-            Height = 42;
-            Padding = new Padding(2);          // הטבעת שבה נראית המסגרת
-            Box.BorderStyle = BorderStyle.None;
-            Box.BackColor = Palette.Card;
-            Box.ForeColor = Palette.Text;
-            Box.Font = new Font("Segoe UI", 11f);
-            Box.RightToLeft = rtlText ? RightToLeft.Yes : RightToLeft.No;
-            Box.Dock = DockStyle.Fill;
-            var host = new Panel { Dock = DockStyle.Fill, BackColor = Palette.Card, Padding = new Padding(12, 10, 12, 0) };
-            host.Controls.Add(Box);
-            Controls.Add(host);
-            Box.GotFocus += (s, e) => Invalidate();
-            Box.LostFocus += (s, e) => Invalidate();
-        }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            var r = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (var path = Draw.Round(r, 8))
-            using (var fill = new SolidBrush(Palette.Card))
-            using (var pen = new Pen(Box.Focused ? Palette.Primary : Palette.InputBorder, Box.Focused ? 2 : 1))
-            {
-                e.Graphics.FillPath(fill, path);
-                e.Graphics.DrawPath(pen, path);
-            }
-            base.OnPaint(e);
-        }
-    }
-
-    internal class GradientBar : Panel
-    {
-        private int _value;
-        public int Value { get { return _value; } set { _value = Math.Max(0, Math.Min(100, value)); Invalidate(); } }
-        public GradientBar() { DoubleBuffered = true; Height = 12; BackColor = Palette.Bg; }
-        protected override void OnPaint(PaintEventArgs e)
-        {
-            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-            var full = new Rectangle(0, 0, Width - 1, Height - 1);
-            using (var trackPath = Draw.Round(full, Height / 2))
-            using (var track = new SolidBrush(Palette.Track))
-                e.Graphics.FillPath(track, trackPath);
-
-            int w = (int)((Width - 1) * (_value / 100.0));
-            if (w > Height)
-            {
-                var fillRect = new Rectangle(0, 0, w, Height - 1);
-                using (var fillPath = Draw.Round(fillRect, Height / 2))
-                using (var grad = new LinearGradientBrush(fillRect, Palette.Success, Palette.Success2, 0f))
-                    e.Graphics.FillPath(grad, fillPath);
-            }
-        }
-    }
-
-    // =================================================================
-    //  החלון
-    // =================================================================
-    internal class MainForm : Form
-    {
-        private InputBox _srcPath, _outPath, _phone;
-        private ComboBox _files;
-        private FlowLayoutPanel _chips;
-        private Label _empty, _status, _progLabel, _progPct;
-        private GradientBar _bar;
-        private FlatBtn _start;
-        private readonly List<PhoneItem> _phones = new List<PhoneItem>();
-
-        public MainForm()
-        {
-            Text = "NM Extractor Studio";
-            BackColor = Palette.Bg;
-            Font = new Font("Segoe UI", 9.5f);
-            RightToLeft = RightToLeft.Yes;
-            FormBorderStyle = FormBorderStyle.FixedSingle;
-            MaximizeBox = false;
-            StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(640, 760);
-            BuildUi();
-            _outPath.Box.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            RefreshChips();
-            Revalidate();
-        }
-
-        private Label RLabel(string text, Font font, Color color, Rectangle b)
-        {
-            return new Label { Text = text, Font = font, ForeColor = color, AutoSize = false,
-                Bounds = b, TextAlign = ContentAlignment.MiddleRight, BackColor = Color.Transparent };
-        }
-
-        private void BuildUi()
-        {
-            int x = 24, w = 592, y = 24;
-            int btnW = 110;
-            int inX = 18, inW = w - 18 - btnW - 10 - 18;   // שדה משמאל
-            int btnX = w - 18 - btnW;                        // כפתור מימין
-
-            // ---------- כותרת (בלי לוגו) ----------
-            Controls.Add(RLabel("NM Extractor Studio", new Font("Segoe UI", 18f, FontStyle.Bold), Palette.Text,
-                new Rectangle(x, y, w, 32)));
-            Controls.Add(RLabel("כלי מקצועי לחילוץ נתונים", new Font("Segoe UI", 9.5f), Palette.Muted,
-                new Rectangle(x, y + 32, w, 20)));
-            y += 68;
-
-            // ---------- כרטיס 1: תיקיית מקור ----------
-            var c1 = new Card { Bounds = new Rectangle(x, y, w, 156) };
-            AddCardTitle(c1, "תיקיית מקור", "הדבק את נתיב התיקייה ולחץ \"טען קבצים\"");
-            var loadBtn = new FlatBtn { Text = "טען קבצים", Bounds = new Rectangle(btnX, 60, btnW, 42) };
-            _srcPath = new InputBox(false) { Bounds = new Rectangle(inX, 60, inW, 42) };
-            loadBtn.Click += (s, e) => ScanFolder();
-            _files = new ComboBox { Bounds = new Rectangle(18, 112, w - 36, 28),
-                DropDownStyle = ComboBoxStyle.DropDownList, FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 10f), RightToLeft = RightToLeft.Yes };
-            _files.SelectedIndexChanged += (s, e) => Revalidate();
-            c1.Controls.Add(loadBtn); c1.Controls.Add(_srcPath); c1.Controls.Add(_files);
-            Controls.Add(c1);
-            y += 172;
-
-            // ---------- כרטיס 2: תיקיית יעד ----------
-            var c2 = new Card { Bounds = new Rectangle(x, y, w, 112) };
-            AddCardTitle(c2, "תיקיית יעד", "המיקום שבו יישמר קובץ התוצאות");
-            var browseOut = new FlatBtn { Text = "עיון", Bounds = new Rectangle(btnX, 60, btnW, 42),
-                Fill = Palette.Card, FillHover = Palette.Bg, ForeColor = Palette.Text };
-            _outPath = new InputBox(false) { Bounds = new Rectangle(inX, 60, inW, 42) };
-            _outPath.Box.TextChanged += (s, e) => Revalidate();
-            browseOut.Click += (s, e) => BrowseOutput();
-            c2.Controls.Add(browseOut); c2.Controls.Add(_outPath);
-            Controls.Add(c2);
-            y += 128;
-
-            // ---------- כרטיס 3: מספרי טלפון ----------
-            var c3 = new Card { Bounds = new Rectangle(x, y, w, 176) };
-            AddCardTitle(c3, "מספרי טלפון", "הוסף את המספרים שברצונך למצוא בקובץ");
-            var add = new FlatBtn { Text = "הוסף", Bounds = new Rectangle(btnX, 60, btnW, 42) };
-            _phone = new InputBox(true) { Bounds = new Rectangle(inX, 60, inW, 42) };
-            _phone.Box.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { AddPhone(); e.SuppressKeyPress = true; } };
-            add.Click += (s, e) => AddPhone();
-            _chips = new FlowLayoutPanel { Bounds = new Rectangle(18, 112, w - 36, 54), AutoScroll = true,
-                BackColor = Palette.Card, RightToLeft = RightToLeft.Yes };
-            _empty = RLabel("לא נוספו מספרים עדיין", new Font("Segoe UI", 9f, FontStyle.Italic), Palette.Muted,
-                new Rectangle(16, 116, w - 32, 24));
-            _empty.BackColor = Palette.Card;
-            c3.Controls.Add(add); c3.Controls.Add(_phone); c3.Controls.Add(_chips); c3.Controls.Add(_empty);
-            _empty.BringToFront();
-            Controls.Add(c3);
-            y += 192;
-
-            // ---------- התקדמות ----------
-            _progLabel = RLabel("ממתין לקלט", new Font("Segoe UI", 9f, FontStyle.Bold), Palette.Text,
-                new Rectangle(x + 44, y, w - 44, 20));
-            _progPct = new Label { Text = "0%", ForeColor = Palette.Success, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                AutoSize = false, Bounds = new Rectangle(x, y, 44, 20), TextAlign = ContentAlignment.MiddleLeft,
-                BackColor = Color.Transparent };
-            _bar = new GradientBar { Bounds = new Rectangle(x, y + 22, w, 12) };
-            Controls.Add(_progLabel); Controls.Add(_progPct); Controls.Add(_bar);
-            y += 48;
-
-            // ---------- סטטוס ----------
-            _status = RLabel("ממתין לקלט - הוסף קובץ ולפחות מספר אחד", new Font("Segoe UI", 9.5f), Palette.Text,
-                new Rectangle(x, y, w, 26));
-            Controls.Add(_status);
-            y += 38;
-
-            // ---------- התחלה ----------
-            _start = new FlatBtn { Text = "התחל חילוץ", Bounds = new Rectangle(x + (w - 300) / 2, y, 300, 50),
-                Font = new Font("Segoe UI", 11f, FontStyle.Bold), Radius = 12, Enabled = false };
-            _start.Click += (s, e) => StartExtraction();
-            Controls.Add(_start);
-        }
-
-        private void AddCardTitle(Card card, string title, string desc)
-        {
-            card.Controls.Add(RLabel(title, new Font("Segoe UI", 11.5f, FontStyle.Bold), Palette.Text,
-                new Rectangle(16, 14, card.Width - 32, 22)));
-            card.Controls.Add(RLabel(desc, new Font("Segoe UI", 8.5f), Palette.Muted,
-                new Rectangle(16, 36, card.Width - 32, 18)));
-        }
-
-        // ---------- טעינת קבצים מהנתיב שהודבק ----------
-        private void ScanFolder()
-        {
-            _files.Items.Clear();
-            string folder = _srcPath.Box.Text.Trim().Trim('"');
-            if (string.IsNullOrEmpty(folder)) { SetStatus("הדבק קודם נתיב תיקייה", Palette.Warning); Revalidate(); return; }
-            if (!Directory.Exists(folder))
-            {
-                SetStatus("התיקייה לא נמצאה - בדוק את הנתיב", Palette.Danger);
-                Revalidate();
-                return;
-            }
-            foreach (var f in Directory.GetFiles(folder))
-                _files.Items.Add(Path.GetFileName(f));
-
-            if (_files.Items.Count > 0)
-            {
-                _files.SelectedIndex = 0;
-                SetStatus("נטענו " + _files.Items.Count + " קבצים - בחר קובץ", Palette.Success);
-            }
-            else
-            {
-                SetStatus("התיקייה ריקה", Palette.Warning);
-            }
-            Revalidate();
-        }
-
-        private void BrowseOutput()
-        {
-            using (var dlg = new FolderBrowserDialog())
-            {
-                if (Directory.Exists(_outPath.Box.Text)) dlg.SelectedPath = _outPath.Box.Text;
-                if (dlg.ShowDialog() == DialogResult.OK)
-                    _outPath.Box.Text = dlg.SelectedPath;
-            }
-        }
-
-        // ---------- מספרים / chips ----------
-        private void AddPhone()
-        {
-            string raw = _phone.Box.Text.Trim();
-            string clean = DigitsOnly(raw);
-            if (clean.Length == 0) { SetStatus("הכנס מספר טלפון תקין", Palette.Danger); return; }
-            foreach (var p in _phones) if (p.Clean == clean) { SetStatus("המספר כבר קיים ברשימה", Palette.Warning); return; }
-            _phones.Add(new PhoneItem { Raw = raw, Clean = clean });
-            _phone.Box.Clear(); _phone.Box.Focus();
-            RefreshChips(); Revalidate();
-        }
-
-        private void RefreshChips()
-        {
-            _chips.Controls.Clear();
-            foreach (var p in _phones)
-            {
-                var item = p;
-                var chip = new Panel { Height = 30, BackColor = Palette.Chip, Margin = new Padding(0, 0, 8, 8),
-                    RightToLeft = RightToLeft.Yes };
-                var close = new Label { Text = "✕", ForeColor = Palette.ChipText, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                    AutoSize = true, Cursor = Cursors.Hand, BackColor = Palette.Chip, Location = new Point(10, 6) };
-                var lbl = new Label { Text = item.Raw, ForeColor = Palette.ChipText, Font = new Font("Segoe UI", 9f, FontStyle.Bold),
-                    AutoSize = true, BackColor = Palette.Chip };
-                chip.Controls.Add(close);
-                chip.Controls.Add(lbl);
-                chip.Width = lbl.PreferredWidth + 46;
-                lbl.Location = new Point(30, 6);
-                close.Click += (s, e) => { _phones.Remove(item); RefreshChips(); Revalidate(); };
-                chip.Paint += (s, e) =>
+                if (editBox == null)
                 {
-                    e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
-                    using (var path = Draw.Round(new Rectangle(0, 0, chip.Width - 1, chip.Height - 1), 15))
-                    using (var b = new SolidBrush(Palette.Chip))
-                        e.Graphics.FillPath(b, path);
-                };
-                _chips.Controls.Add(chip);
-            }
-            _empty.Visible = _phones.Count == 0;
-        }
-
-        // ---------- ולידציה / סטטוס ----------
-        private void Revalidate()
-        {
-            bool ok = _files.SelectedIndex >= 0 && _phones.Count > 0 &&
-                      !string.IsNullOrEmpty(_outPath.Box.Text.Trim());
-            _start.Enabled = ok;
-            if (ok) SetStatus("מוכן לחילוץ", Palette.Success);
-            else if (_status != null && _status.ForeColor == Palette.Danger) { /* השאר שגיאה קיימת */ }
-            else SetStatus("ממתין לקלט - הוסף קובץ ולפחות מספר אחד", Palette.Muted);
-        }
-
-        private void SetStatus(string text, Color color)
-        {
-            _status.Text = text;
-            _status.ForeColor = (color == Palette.Muted) ? Palette.Text : color;
-        }
-
-        // ---------- חילוץ ----------
-        private void StartExtraction()
-        {
-            string selected = _files.SelectedItem as string;
-            if (selected == null) return;
-            string folder = _srcPath.Box.Text.Trim().Trim('"');
-            string sourcePath = Path.Combine(folder, selected);
-            string outputFolder = _outPath.Box.Text.Trim();
-            if (!File.Exists(sourcePath)) { SetStatus("קובץ המקור לא נמצא בדיסק", Palette.Danger); return; }
-            if (!Directory.Exists(outputFolder)) { SetStatus("תיקיית היעד לא קיימת", Palette.Danger); return; }
-
-            string outputPath = Path.Combine(outputFolder, "search_results_notepad.txt");
-            var terms = new List<PhoneItem>(_phones);
-
-            _start.Enabled = false;
-            _progLabel.Text = "מעבד...";
-            _bar.Value = 0;
-
-            var worker = new BackgroundWorker { WorkerReportsProgress = true };
-            worker.DoWork += (s, e) => e.Result = Extract(sourcePath, outputPath, terms, worker);
-            worker.ProgressChanged += (s, e) =>
-            {
-                _bar.Value = e.ProgressPercentage;
-                _progPct.Text = e.ProgressPercentage + "%";
-            };
-            worker.RunWorkerCompleted += (s, e) =>
-            {
-                if (e.Error != null)
-                {
-                    SetStatus("החילוץ נכשל: " + e.Error.Message, Palette.Danger);
+                    Console.WriteLine("(!) לא מצאתי את תיבת 'File name'.");
                 }
                 else
                 {
-                    _bar.Value = 100; _progPct.Text = "100%";
-                    _progLabel.Text = "הושלם";
-                    int matches = (int)e.Result;
-                    SetStatus("החילוץ הושלם - " + matches.ToString("N0") + " שורות נשמרו", Palette.Success);
-                }
-                _start.Enabled = true;
-            };
-            worker.RunWorkerAsync();
-        }
+                    Console.WriteLine("קליק פיזי על תיבת השם...");
+                    RealClick(editBox);
+                    Thread.Sleep(400);
 
-        private static int Extract(string sourcePath, string outputPath, List<PhoneItem> terms, BackgroundWorker worker)
-        {
-            Encoding enc = Encoding.GetEncoding(1255); // עברית - מובנה ב-.NET Framework של SSIS
-            long total = new FileInfo(sourcePath).Length;
-            long bytesRead = 0;
-            int matches = 0, tick = 0, lastPct = -1;
-
-            using (var reader = new StreamReader(sourcePath, enc))
-            using (var writer = new StreamWriter(outputPath, false, enc))
-            {
-                string line;
-                while ((line = reader.ReadLine()) != null)
-                {
-                    tick++;
-                    bytesRead += enc.GetByteCount(line) + 2;
-
-                    if (!string.IsNullOrEmpty(line) && line.Trim().Length > 0 && IsMatch(line, terms))
+                    Console.WriteLine("מרוקן את השדה...");
+                    object clearPattern;
+                    if (editBox.TryGetCurrentPattern(ValuePattern.Pattern, out clearPattern))
                     {
-                        writer.WriteLine(line);
-                        matches++;
+                        try { ((ValuePattern)clearPattern).SetValue(""); }
+                        catch { }
                     }
+                    Thread.Sleep(300);
 
-                    if (tick >= 5000)
+                    Console.WriteLine("מקליד עם המקלדת...");
+                    SendKeys.SendWait("אחרי בפועל");
+                    Thread.Sleep(500);
+
+                    object vp;
+                    if (editBox.TryGetCurrentPattern(ValuePattern.Pattern, out vp))
+                        Console.WriteLine("בתיבה כתוב עכשיו: '" + ((ValuePattern)vp).Current.Value + "'");
+
+                    Thread.Sleep(300);
+
+                    // *** קריטי: לוחצים פיזית על Save, לא "בשקט" ***
+                    AutomationElement saveBtn = browseDialog.FindFirst(TreeScope.Descendants,
+                        new PropertyCondition(AutomationElement.AutomationIdProperty, "1"));
+
+                    if (saveBtn != null)
                     {
-                        tick = 0;
-                        int pct = total > 0 ? (int)Math.Min(100, bytesRead * 100 / total) : 0;
-                        if (pct != lastPct) { lastPct = pct; worker.ReportProgress(pct); }
+                        Console.WriteLine("קליק פיזי על Save...");
+                        RealClick(saveBtn);
+                    }
+                    else
+                    {
+                        Console.WriteLine("לא מצאתי כפתור Save - שולח Enter.");
+                        SendKeys.SendWait("{ENTER}");
+                    }
+                    Thread.Sleep(2000);
+
+                    // *** בדיקה: האם תיבת הנתיב הראשית באמת התעדכנה? ***
+                    AutomationElement mainField = saveWindow.FindFirst(TreeScope.Descendants,
+                        new PropertyCondition(AutomationElement.AutomationIdProperty, "txtFolderName"));
+                    if (mainField != null)
+                    {
+                        object mvp;
+                        if (mainField.TryGetCurrentPattern(ValuePattern.Pattern, out mvp))
+                            Console.WriteLine("התיבה הראשית עכשיו מראה: '" + ((ValuePattern)mvp).Current.Value + "'");
                     }
                 }
             }
-            return matches;
+
+            Console.WriteLine("לוחץ על 'אישור' הסופי בחלון 'שמירה בסיום ההרצה'...");
+            ClickButton(saveWindow, "btnSave");
+
+            string expectedPath = Path.Combine(todayFolder, "SubFolder1", "אחרי בפועל.xlsm");
+
+            Console.WriteLine("ממתין שהקובץ באמת יופיע (עד 90 שניות)...");
+            bool found = false;
+            for (int i = 0; i < 30; i++)
+            {
+                if (File.Exists(expectedPath)) { found = true; break; }
+                Thread.Sleep(3000);
+            }
+            if (found)
+            {
+                Console.WriteLine("מצוין! הקובץ נמצא: " + expectedPath);
+
+                // *** שלב חדש: יוצרים קובץ חדש עם שני הטאבים זה לצד זה ***
+                string outputFolder = Path.GetDirectoryName(expectedPath);
+                string outputName = "report_115_" + DateTime.Now.ToString("yyyy_MM_dd-HH-mm") + ".xlsx";
+                string outputFullPath = Path.Combine(outputFolder, outputName);
+
+                Console.WriteLine("יוצר קובץ ממוזג: " + outputFullPath);
+                try
+                {
+                    CombineTabsToNewWorkbook(expectedPath, "שגיאות הקמה", "סטטוס הקמה במערכת", outputFullPath);
+                    Console.WriteLine("הקובץ הממוזג נוצר בהצלחה!");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("(!) שגיאה ביצירת הקובץ הממוזג: " + ex.Message);
+                }
+
+                // *** שלב נוסף: מחלצים את הטאב 'קבצים לפתוח' לקובץ נפרד בשם 'מפתוחים' ***
+                string openFilesOutputPath = Path.Combine(outputFolder, "מפתוחים.xlsx");
+                Console.WriteLine("שמות הטאבים שבאמת יש בקובץ:");
+                try
+                {
+                    foreach (string name in GetSheetNames(expectedPath))
+                        Console.WriteLine("   - '" + name + "'");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("(!) לא הצלחתי לקרוא את שמות הטאבים: " + ex.Message);
+                }
+
+                Console.WriteLine("מחלץ את הטאב 'קבצים לפתוח' לקובץ: " + openFilesOutputPath);
+                try
+                {
+                    CopySingleSheetToNewWorkbook(expectedPath, "קבצים למפתוח", openFilesOutputPath);
+                    Console.WriteLine("קובץ 'מפתוחים' נוצר בהצלחה!");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("(!) שגיאה ביצירת קובץ 'מפתוחים': " + ex.Message);
+                }
+
+                // *** שלב נוסף: מעתיקים את תיקיית 'מסמכים' עצמה (עם השם שלה) ליעד הקבוע ***
+                string docsSourceFolder = Path.Combine(outputFolder, "מסמכים");
+                string docsDestBase = @"\\100.100.100.6\Root\ScanDocs\Source\2\מפתוח אוטומטי";
+                string docsDestFolder = Path.Combine(docsDestBase, "מסמכים");
+
+                Console.WriteLine("מעתיק את תיקיית 'מסמכים' אל: " + docsDestFolder);
+                try
+                {
+                    if (Directory.Exists(docsSourceFolder))
+                    {
+                        CopyDirectoryContents(docsSourceFolder, docsDestFolder);
+                        Console.WriteLine("התיקייה הועתקה בהצלחה!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("(!) לא מצאתי תיקיית 'מסמכים' בנתיב: " + docsSourceFolder);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("(!) שגיאה בהעתקת התיקייה: " + ex.Message);
+                }
+            }
+            else
+                Console.WriteLine("(!) לא רואה את הקובץ בנתיב הצפוי: " + expectedPath);
         }
 
-        private static bool IsMatch(string line, List<PhoneItem> terms)
+        Console.WriteLine(new string('=', 60));
+        Console.WriteLine("מנקה: סוגר את 'מנוע דוחות' ופותח את התיקייה הראשית להצגה...");
+
+        try
         {
-            foreach (var t in terms)
-                if (line.IndexOf(t.Raw, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-
-            string digits = DigitsOnly(line);
-            if (digits.Length > 0)
-                foreach (var t in terms)
-                    if (digits.Contains(t.Clean)) return true;
-
-            return false;
+            if (!proc.HasExited)
+            {
+                proc.CloseMainWindow();
+                if (!proc.WaitForExit(5000))
+                {
+                    Console.WriteLine("   סגירה רגילה לא הספיקה, סוגר בכוח...");
+                    proc.Kill();
+                }
+            }
         }
-
-        private static string DigitsOnly(string s)
+        catch (Exception ex)
         {
-            var sb = new StringBuilder(s.Length);
-            foreach (char c in s) if (c >= '0' && c <= '9') sb.Append(c);
-            return sb.ToString();
+            Console.WriteLine("   (!) בעיה בסגירת התוכנה: " + ex.Message);
         }
 
-        private class PhoneItem { public string Raw; public string Clean; }
+        try
+        {
+            if (todayFolder != null)
+                Process.Start("explorer.exe", todayFolder);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("   (!) בעיה בפתיחת התיקייה: " + ex.Message);
+        }
+
+        Console.WriteLine(new string('=', 60));
+        Console.WriteLine("=== שלב 2: פותח את התוכנה הבאה ===");
+
+        // *** תשים כאן את הנתיב האמיתי לתוכנה השנייה (בלי שום מרכאות/פרמטרים בפנים!) ***
+        string exePath2 = @"C:\Program Files\Archive\Archive.exe";
+        // *** ננסה קודם בלי פרמטר בכלל, כדי לוודא שנפתח חלון רגיל שרואים ***
+        string exeArgs2 = "";
+
+        Console.WriteLine("פותח את התוכנה השנייה...");
+        Process proc2 = string.IsNullOrEmpty(exeArgs2)
+            ? Process.Start(exePath2)
+            : Process.Start(exePath2, exeArgs2);
+        try { proc2.WaitForInputIdle(5000); } catch { }
+
+        AutomationElement window2 = FindWindowByProcessId(proc2.Id, 15);
+
+        if (window2 == null)
+        {
+            Console.WriteLine("(!) לא מצאתי את חלון התוכנה השנייה.");
+        }
+        else
+        {
+            Console.WriteLine("נמצא חלון (מחכה שהוא יטען לגמרי)...");
+
+            // מנסים כמה פעמים - יכול לקחת רגע עד שהתוכן באמת נטען
+            AutomationElementCollection controls2 = null;
+            for (int i = 0; i < 15; i++)
+            {
+                controls2 = window2.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+                if (controls2.Count > 0) break;
+                Thread.Sleep(1000);
+            }
+
+            Console.WriteLine("שם החלון: '" + window2.Current.Name + "'");
+            Console.WriteLine(new string('-', 60));
+            Console.WriteLine("אלה כל השדות/כפתורים בחלון הזה (" + (controls2?.Count ?? 0) + " נמצאו):");
+            Console.WriteLine(new string('-', 60));
+
+            if (controls2 != null)
+            {
+                foreach (AutomationElement el in controls2)
+                {
+                    try
+                    {
+                        Console.WriteLine($"סוג: {el.Current.ControlType.ProgrammaticName,-35} | שם: '{el.Current.Name}' | מזהה: '{el.Current.AutomationId}'");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("   (!) לא הצלחתי לקרוא אלמנט אחד: " + ex.GetType().Name + " - " + ex.Message);
+                    }
+                }
+            }
+
+            // *** תשים כאן את שם המשתמש והסיסמה האמיתיים ***
+            string username2 = "USERNAME_HERE";
+            string password2 = "PASSWORD_HERE";
+
+            Console.WriteLine("ממלא שם משתמש וסיסמה...");
+            SetTextValue(window2, "txtUser", username2);
+            SetTextValue(window2, "txtPassword", password2);
+
+            Thread.Sleep(500);
+            Console.WriteLine("לוחץ על 'אישור' (OK)...");
+
+            var handlesBeforeLogin = GetAllTopWindowHandles();
+            ClickButton(window2, "OK");
+
+            AutomationElement window3 = FindNewTopWindowAny(handlesBeforeLogin, 15);
+
+            if (window3 == null)
+            {
+                Console.WriteLine("(!) לא נפתח חלון נוסף אחרי ההתחברות (אולי זה בסדר, או שצריך לחכות יותר).");
+            }
+            else
+            {
+                Console.WriteLine("נמצא חלון חדש: '" + window3.Current.Name + "'");
+                Console.WriteLine(new string('-', 60));
+
+                AutomationElementCollection controls3 = null;
+                for (int i = 0; i < 15; i++)
+                {
+                    controls3 = window3.FindAll(TreeScope.Descendants, Condition.TrueCondition);
+                    if (controls3.Count > 0) break;
+                    Thread.Sleep(1000);
+                }
+
+                Console.WriteLine("אלה כל השדות/כפתורים בחלון הזה (" + (controls3?.Count ?? 0) + " נמצאו):");
+                Console.WriteLine(new string('-', 60));
+
+                if (controls3 != null)
+                {
+                    foreach (AutomationElement el in controls3)
+                    {
+                        try
+                        {
+                            Console.WriteLine($"סוג: {el.Current.ControlType.ProgrammaticName,-35} | שם: '{el.Current.Name}' | מזהה: '{el.Current.AutomationId}'");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("   (!) לא הצלחתי לקרוא אלמנט אחד: " + ex.GetType().Name + " - " + ex.Message);
+                        }
+                    }
+                }
+                Console.WriteLine(new string('-', 60));
+                Console.WriteLine("תעתיק לי גם את הרשימה הזו - נמשיך לפיה לשלב הבא.");
+            }
+            Console.WriteLine(new string('-', 60));
+            Console.WriteLine("תעתיק לי את הרשימה הזו - נזהה לפיה את שדות שם המשתמש והסיסמה.");
+        }
+
+        Console.WriteLine(new string('=', 60));
+        Console.WriteLine("תעתיק לי הכל מלמעלה.");
+        Console.WriteLine("לחץ Enter לסגירה...");
+        Console.ReadLine();
+    }
+
+    // מחפש חלון לפי השם המדויק שלו - בלי קשר לאיזה תהליך (process) פתח אותו
+    // מחזיר רשימה של כל שמות הטאבים בקובץ - שימושי לאבחון שמות מדויקים
+    static string[] GetSheetNames(string filePath)
+    {
+        Excel.Application excelApp = null;
+        Excel.Workbook wb = null;
+        try
+        {
+            excelApp = new Excel.Application();
+            excelApp.Visible = false;
+            excelApp.DisplayAlerts = false;
+            wb = excelApp.Workbooks.Open(filePath, ReadOnly: true);
+
+            var names = new System.Collections.Generic.List<string>();
+            foreach (Excel.Worksheet s in wb.Sheets) names.Add(s.Name);
+            return names.ToArray();
+        }
+        finally
+        {
+            if (wb != null) { wb.Close(false); Marshal.ReleaseComObject(wb); }
+            if (excelApp != null) { excelApp.Quit(); Marshal.ReleaseComObject(excelApp); }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+    }
+
+    // פותח את הקובץ המקור, ומעתיק טאב בודד לקובץ חדש
+    static void CopySingleSheetToNewWorkbook(string sourceFile, string sheetName, string outputFullPath)
+    {
+        Excel.Application excelApp = null;
+        Excel.Workbook sourceWb = null;
+        Excel.Workbook newWb = null;
+
+        try
+        {
+            excelApp = new Excel.Application();
+            excelApp.Visible = false;
+            excelApp.DisplayAlerts = false;
+
+            sourceWb = excelApp.Workbooks.Open(sourceFile, ReadOnly: true);
+            Excel.Worksheet sheet = (Excel.Worksheet)sourceWb.Sheets[sheetName];
+
+            newWb = excelApp.Workbooks.Add();
+            Excel.Worksheet placeholderSheet = (Excel.Worksheet)newWb.Sheets[1];
+
+            sheet.Copy(After: newWb.Sheets[newWb.Sheets.Count]);
+            placeholderSheet.Delete();
+
+            newWb.SaveAs(outputFullPath, Excel.XlFileFormat.xlOpenXMLWorkbook);
+        }
+        finally
+        {
+            if (newWb != null) { newWb.Close(false); Marshal.ReleaseComObject(newWb); }
+            if (sourceWb != null) { sourceWb.Close(false); Marshal.ReleaseComObject(sourceWb); }
+            if (excelApp != null) { excelApp.Quit(); Marshal.ReleaseComObject(excelApp); }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+    }
+
+    // מעתיק את כל התוכן (קבצים ותתי-תיקיות) מתיקיית מקור לתיקיית יעד
+    static void CopyDirectoryContents(string sourceDir, string destDir)
+    {
+        Directory.CreateDirectory(destDir);
+
+        foreach (string file in Directory.GetFiles(sourceDir))
+        {
+            string destFile = Path.Combine(destDir, Path.GetFileName(file));
+            File.Copy(file, destFile, true);
+        }
+
+        foreach (string subDir in Directory.GetDirectories(sourceDir))
+        {
+            string destSubDir = Path.Combine(destDir, Path.GetFileName(subDir));
+            CopyDirectoryContents(subDir, destSubDir);
+        }
+    }
+
+    // פותח את הקובץ המקור, ומעתיק שני טאבים שלמים לקובץ חדש (כל אחד כטאב נפרד)
+    static void CombineTabsToNewWorkbook(string sourceFile, string sheet1Name, string sheet2Name, string outputFullPath)
+    {
+        Excel.Application excelApp = null;
+        Excel.Workbook sourceWb = null;
+        Excel.Workbook newWb = null;
+
+        try
+        {
+            excelApp = new Excel.Application();
+            excelApp.Visible = false;
+            excelApp.DisplayAlerts = false;
+
+            sourceWb = excelApp.Workbooks.Open(sourceFile, ReadOnly: true);
+
+            Excel.Worksheet sheet1 = (Excel.Worksheet)sourceWb.Sheets[sheet1Name];
+            Excel.Worksheet sheet2 = (Excel.Worksheet)sourceWb.Sheets[sheet2Name];
+
+            // חוברת חדשה - מתחילה עם טאב ברירת מחדל אחד ריק
+            newWb = excelApp.Workbooks.Add();
+            Excel.Worksheet placeholderSheet = (Excel.Worksheet)newWb.Sheets[1];
+
+            // מעתיקים את שני הטאבים בשלמותם (עם כל התוכן והעיצוב) לתוך החוברת החדשה
+            sheet1.Copy(After: newWb.Sheets[newWb.Sheets.Count]);
+            sheet2.Copy(After: newWb.Sheets[newWb.Sheets.Count]);
+
+            // מוחקים את הטאב הריק המקורי שנוצר אוטומטית עם החוברת החדשה
+            placeholderSheet.Delete();
+
+            newWb.SaveAs(outputFullPath, Excel.XlFileFormat.xlOpenXMLWorkbook);
+        }
+        finally
+        {
+            // חשוב מאוד: לשחרר הכל כמו שצריך, אחרת נשארים תהליכי Excel "רוחות רפאים"
+            if (newWb != null) { newWb.Close(false); Marshal.ReleaseComObject(newWb); }
+            if (sourceWb != null) { sourceWb.Close(false); Marshal.ReleaseComObject(sourceWb); }
+            if (excelApp != null) { excelApp.Quit(); Marshal.ReleaseComObject(excelApp); }
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+    }
+
+    static AutomationElement FindWindowByTitleAnyProcess(AutomationElement innerSearchRoot, string title, int timeoutSeconds)
+    {
+        for (int i = 0; i < timeoutSeconds * 2; i++)
+        {
+            AutomationElement top = AutomationElement.RootElement.FindFirst(TreeScope.Children,
+                new PropertyCondition(AutomationElement.NameProperty, title));
+            if (top != null) return top;
+
+            if (innerSearchRoot != null)
+            {
+                AutomationElement inner = innerSearchRoot.FindFirst(TreeScope.Descendants,
+                    new PropertyCondition(AutomationElement.NameProperty, title));
+                if (inner != null) return inner;
+            }
+            Thread.Sleep(500);
+        }
+        return null;
+    }
+
+    static HashSet<IntPtr> GetWindowHandlesForProcess(int pid)
+    {
+        var set = new HashSet<IntPtr>();
+        AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+        foreach (AutomationElement win in windows)
+        {
+            int wpid = 0;
+            try { wpid = win.Current.ProcessId; } catch { continue; }
+            if (wpid != pid) continue;
+            try { set.Add(new IntPtr(win.Current.NativeWindowHandle)); } catch { }
+        }
+        return set;
+    }
+
+    static AutomationElement FindNewWindowByHandle(int pid, HashSet<IntPtr> knownHandles, int timeoutSeconds)
+    {
+        for (int i = 0; i < timeoutSeconds * 2; i++)
+        {
+            AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+            foreach (AutomationElement win in windows)
+            {
+                int wpid = 0;
+                try { wpid = win.Current.ProcessId; } catch { continue; }
+                if (wpid != pid) continue;
+                IntPtr h;
+                try { h = new IntPtr(win.Current.NativeWindowHandle); } catch { continue; }
+                if (!knownHandles.Contains(h)) return win;
+            }
+            Thread.Sleep(500);
+        }
+        return null;
+    }
+
+    // מחפש כל חלון (בכל תהליך) עם כפתור "אישור" או "OK", ולוחץ עליו
+    static void HandleConfirmationPopup(int timeoutSeconds)
+    {
+        for (int i = 0; i < timeoutSeconds * 2; i++)
+        {
+            AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+            foreach (AutomationElement w in windows)
+            {
+                AutomationElement okBtn = null;
+                try
+                {
+                    Condition cond = new OrCondition(
+                        new PropertyCondition(AutomationElement.NameProperty, "אישור"),
+                        new PropertyCondition(AutomationElement.NameProperty, "OK"),
+                        new PropertyCondition(AutomationElement.NameProperty, "כן"),
+                        new PropertyCondition(AutomationElement.NameProperty, "Yes"));
+                    okBtn = w.FindFirst(TreeScope.Descendants, cond);
+                }
+                catch { }
+
+                if (okBtn != null)
+                {
+                    Console.WriteLine("   נמצא חלון: '" + w.Current.Name + "' - לוחץ על אישור...");
+                    object pattern;
+                    bool clicked = false;
+                    if (okBtn.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
+                    {
+                        try { ((InvokePattern)pattern).Invoke(); clicked = true; } catch { }
+                    }
+                    if (!clicked) RealClick(okBtn);
+                    return;
+                }
+            }
+            Thread.Sleep(500);
+        }
+        Console.WriteLine("   (לא הופיע חלון אישור - אולי לא היה צורך הפעם)");
+    }
+
+    static void RealClick(AutomationElement element)
+    {
+        var rect = element.Current.BoundingRectangle;
+        int x = (int)(rect.Left + rect.Width / 2);
+        int y = (int)(rect.Top + rect.Height / 2);
+        SetCursorPos(x, y);
+        Thread.Sleep(150);
+        mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(80);
+        mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+    }
+
+    static void BringToFront(AutomationElement window)
+    {
+        try
+        {
+            IntPtr hWnd = new IntPtr(window.Current.NativeWindowHandle);
+            SetForegroundWindow(hWnd);
+        }
+        catch { }
+    }
+
+    [DllImport("user32.dll")]
+    static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+    const byte VK_RETURN = 0x0D;
+    const uint KEYEVENTF_KEYUP = 0x0002;
+
+    static void PressEnter()
+    {
+        keybd_event(VK_RETURN, 0, 0, UIntPtr.Zero);
+        Thread.Sleep(50);
+        keybd_event(VK_RETURN, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+    }
+
+    // צילום כל החלונות העצמאיים הפתוחים כרגע, בכל תהליך שהוא
+    static HashSet<IntPtr> GetAllTopWindowHandles()
+    {
+        var set = new HashSet<IntPtr>();
+        AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+        foreach (AutomationElement w in windows)
+        {
+            try { set.Add(new IntPtr(w.Current.NativeWindowHandle)); } catch { }
+        }
+        return set;
+    }
+
+    static AutomationElement FindNewTopWindowAny(HashSet<IntPtr> knownHandles, int timeoutSeconds)
+    {
+        for (int i = 0; i < timeoutSeconds * 2; i++)
+        {
+            AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+            foreach (AutomationElement w in windows)
+            {
+                IntPtr h;
+                try { h = new IntPtr(w.Current.NativeWindowHandle); } catch { continue; }
+                if (!knownHandles.Contains(h)) return w;
+            }
+            Thread.Sleep(500);
+        }
+        return null;
+    }
+
+    // מחכה שיופיע קובץ אקסל חדש בתיקייה (או בתתי-תיקיות שלה), שנוצר אחרי הזמן שהעברנו
+    static string WaitForNewExcelFile(string folder, DateTime afterTime, int timeoutSeconds)
+    {
+        string[] validExtensions = { ".xlsm", ".xlsx", ".xls" };
+
+        for (int i = 0; i < timeoutSeconds; i++)
+        {
+            try
+            {
+                var files = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories)
+                    .Select(f => new FileInfo(f))
+                    .Where(f => f.LastWriteTime > afterTime &&
+                                Array.IndexOf(validExtensions, f.Extension.ToLower()) >= 0)
+                    .OrderByDescending(f => f.LastWriteTime)
+                    .ToList();
+
+                if (files.Count > 0) return files[0].FullName;
+            }
+            catch { }
+            Thread.Sleep(1000);
+        }
+        return null;
+    }
+
+    static string FindTodayFolder(string parentFolder)
+    {
+        try
+        {
+            var dirs = Directory.GetDirectories(parentFolder);
+            var todayDirs = dirs
+                .Select(d => new DirectoryInfo(d))
+                .Where(d => d.LastWriteTime.Date == DateTime.Today || d.CreationTime.Date == DateTime.Today)
+                .OrderByDescending(d => d.LastWriteTime)
+                .ToList();
+            return todayDirs.FirstOrDefault()?.FullName;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("(!) שגיאה בגישה לתיקייה: " + ex.Message);
+            return null;
+        }
+    }
+
+    static AutomationElement FindWindowByProcessId(int pid, int timeoutSeconds)
+    {
+        for (int i = 0; i < timeoutSeconds * 2; i++)
+        {
+            AutomationElementCollection windows = AutomationElement.RootElement.FindAll(TreeScope.Children, Condition.TrueCondition);
+            foreach (AutomationElement win in windows)
+            {
+                int wpid = 0;
+                try { wpid = win.Current.ProcessId; } catch { continue; }
+                if (wpid == pid) return win;
+            }
+            Thread.Sleep(500);
+        }
+        return null;
+    }
+
+    static void SelectItemInside(AutomationElement parentWindow, string containerAutomationId, string itemName)
+    {
+        AutomationElement container = parentWindow.FindFirst(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.AutomationIdProperty, containerAutomationId));
+        if (container == null) { Console.WriteLine("   (!) לא נמצא: " + containerAutomationId); return; }
+
+        AutomationElement item = null;
+        for (int i = 0; i < 10 && item == null; i++)
+        {
+            item = container.FindFirst(TreeScope.Descendants, new PropertyCondition(AutomationElement.NameProperty, itemName));
+            if (item == null) Thread.Sleep(300);
+        }
+        if (item == null) { Console.WriteLine("   (!) לא נמצא פריט בשם: " + itemName); return; }
+
+        object pattern;
+        if (item.TryGetCurrentPattern(SelectionItemPattern.Pattern, out pattern))
+            ((SelectionItemPattern)pattern).Select();
+        else if (item.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
+            ((InvokePattern)pattern).Invoke();
+    }
+
+    static void ClickButton(AutomationElement parentWindow, string buttonAutomationId)
+    {
+        AutomationElement button = parentWindow.FindFirst(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.AutomationIdProperty, buttonAutomationId));
+        if (button == null) { Console.WriteLine("   (!) לא נמצא כפתור: " + buttonAutomationId); return; }
+
+        object pattern;
+        if (button.TryGetCurrentPattern(InvokePattern.Pattern, out pattern))
+        {
+            try { ((InvokePattern)pattern).Invoke(); }
+            catch (Exception ex) { Console.WriteLine("   (!) Invoke נכשל: " + ex.Message); }
+        }
+    }
+
+    static void SetCheckBox(AutomationElement parentWindow, string automationId, bool check)
+    {
+        AutomationElement cb = parentWindow.FindFirst(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.AutomationIdProperty, automationId));
+
+        if (cb == null) { Console.WriteLine("   (!) לא נמצאה תיבת סימון: " + automationId); return; }
+
+        object pattern;
+        if (cb.TryGetCurrentPattern(TogglePattern.Pattern, out pattern))
+        {
+            TogglePattern toggle = (TogglePattern)pattern;
+            bool isChecked = toggle.Current.ToggleState == ToggleState.On;
+            if (isChecked != check)
+            {
+                try { toggle.Toggle(); }
+                catch (Exception ex) { Console.WriteLine("   (!) סימון נכשל: " + ex.Message); }
+            }
+            else
+            {
+                Console.WriteLine("   (המצב כבר היה כמו שרצינו)");
+            }
+        }
+        else
+        {
+            Console.WriteLine("   (!) התיבה לא תומכת בסימון ישיר.");
+        }
+    }
+
+    static void SetTextValue(AutomationElement parentWindow, string automationId, string text)
+    {
+        AutomationElement field = parentWindow.FindFirst(TreeScope.Descendants,
+            new PropertyCondition(AutomationElement.AutomationIdProperty, automationId));
+        if (field == null) { Console.WriteLine("   (!) לא נמצא שדה: " + automationId); return; }
+
+        object pattern;
+        if (field.TryGetCurrentPattern(ValuePattern.Pattern, out pattern))
+        {
+            try { ((ValuePattern)pattern).SetValue(text); }
+            catch (Exception ex) { Console.WriteLine("   (!) מילוי נכשל: " + ex.Message); }
+        }
     }
 }
