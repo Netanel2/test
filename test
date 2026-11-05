@@ -1,1 +1,154 @@
-אני שוב אחדד ואסביר, רק ה next_run_date לא נשלח תקין במייל. זה שולח תאריך שונה ממה שאני שולף בשאילתה ב SQL 
+SELECT *
+FROM #tb_sysjobschedules_PSRS;
+
+
+
+
+USE msdb;
+
+IF OBJECT_ID('tempdb..#tb_sysjobschedules_PSRS') IS NOT NULL
+    DROP TABLE #tb_sysjobschedules_PSRS;
+
+SELECT DISTINCT
+    sysschedules.date_modified AS date_modified,
+    sysjobs.name AS job_name,
+
+    CASE
+        WHEN sysjobs.enabled = 1 THEN 'enabled'
+        ELSE 'not_enabled'
+    END AS job_enabled,
+
+    CASE
+        WHEN sysschedules.enabled = 1 THEN 'enabled'
+        ELSE 'not_enabled'
+    END AS schedule_enabled,
+
+    sysschedules.name AS schedule_name,
+
+    -- CHANGED: next run time from sysjobactivity
+    ISNULL(
+        CONVERT(varchar(5), ja.next_scheduled_run_date, 108),
+        'N/A'
+    ) AS next_run_time,
+
+    -- CHANGED: next run date from sysjobactivity
+    ISNULL(
+        CONVERT(varchar(10), ja.next_scheduled_run_date, 23),
+        'N/A'
+    ) AS next_run_date
+
+INTO #tb_sysjobschedules_PSRS
+
+FROM msdb.dbo.sysjobs AS sysjobs
+
+INNER JOIN msdb.dbo.sysjobschedules AS sysjobschedules
+    ON sysjobs.job_id = sysjobschedules.job_id
+
+INNER JOIN msdb.dbo.sysschedules AS sysschedules
+    ON sysjobschedules.schedule_id = sysschedules.schedule_id
+
+-- NEW: Get the next scheduled run from the latest Agent session
+OUTER APPLY (
+    SELECT TOP (1)
+        a.next_scheduled_run_date
+    FROM msdb.dbo.sysjobactivity AS a
+    WHERE a.job_id = sysjobs.job_id
+      AND a.session_id = (
+          SELECT MAX(session_id)
+          FROM msdb.dbo.syssessions
+      )
+    ORDER BY a.session_id DESC
+) AS ja
+
+WHERE sysschedules.date_modified >=
+      CONVERT(char(10), GETDATE(), 126);
+
+IF @@ROWCOUNT > 0
+BEGIN
+
+    DECLARE @MAIL_BODY VARCHAR(MAX);
+
+    /* HEADER */
+    SET @MAIL_BODY =
+    '<style type="text/css">
+        .tg1 {border-collapse:collapse;border-color:#9ABAD9;border-spacing:0}
+        .tg1 td{background-color:#EBF5FF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#444;font-family:consolas;font-size:14px;padding:2px 2px}
+        .tg1 th{background-color:#409CFF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#fff;font-family:consolas;font-size:14px;padding:2px 2px}
+    </style>' +
+    '<head><meta charset="utf-8"><div dir="rtl"></div></head><BR><center><table class="tg1">' +
+    '<tr>
+        <th>date_modified</th>
+        <th>job_name</th>
+        <th>job_enabled</th>
+        <th>schedule_enabled</th>
+        <th>schedule_name</th>
+        <th>next_run_time</th>
+        <th>next_run_date</th>
+    </tr>';
+
+    /* ROWS */
+    SELECT
+        @MAIL_BODY = @MAIL_BODY +
+        '<tr>' +
+        '<td>' + CAST([date_modified] AS varchar(30)) + '</td>' +
+        '<td>' + [job_name] + '</td>' +
+        '<td>' + [job_enabled] + '</td>' +
+        '<td>' + [schedule_enabled] + '</td>' +
+        '<td>' + [schedule_name] + '</td>' +
+        '<td>' + [next_run_time] + '</td>' +
+        '<td>' + [next_run_date] + '</td>' +
+        '</tr>'
+    FROM #tb_sysjobschedules_PSRS
+    ORDER BY job_name;
+
+    SELECT @MAIL_BODY = @MAIL_BODY + '</table></center>';
+
+    -- Get mail details
+    DECLARE @Receipt AS nvarchar(1000);
+
+    SET @Receipt = (
+        SELECT Recipients
+        FROM psql.generix_staging.dbo.SupportMailRecipients
+        WHERE SSIS_ID = 85
+    );
+
+    DECLARE @ReceiptCopy AS nvarchar(1000);
+
+    SET @ReceiptCopy = (
+        SELECT ISNULL(CopyRecipients, '')
+        FROM psql.generix_staging.dbo.SupportMailRecipients
+        WHERE SSIS_ID = 85
+    );
+
+    DECLARE @MSubject AS nvarchar(1000);
+
+    SET @MSubject = (
+        SELECT MailSubject
+        FROM psql.generix_staging.dbo.SupportMailRecipients
+        WHERE SSIS_ID = 85
+    );
+
+    DECLARE @SSIS AS nvarchar(1000);
+
+    SET @SSIS = (
+        SELECT SSIS_Name
+        FROM psql.generix_staging.dbo.SupportMailRecipients
+        WHERE SSIS_ID = 85
+    );
+
+    DECLARE @Msg AS nvarchar(MAX);
+
+    SET @Msg = @MAIL_BODY + '<br>' + '<br>' + @SSIS;
+
+    -- Send email
+    EXEC msdb.dbo.sp_send_dbmail
+        @profile_name = 'dbmail',
+        @from_address = 'liba@altshul.co.il',
+        @recipients = @Receipt,
+        @execute_query_database = 'ALTSHULER_MSCRM',
+        @query_result_header = 1,
+        @body = @Msg,
+        @subject = @MSubject,
+        @body_format = 'HTML';
+
+END;
