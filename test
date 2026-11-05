@@ -1,113 +1,18 @@
-דרך ה SQL שאני מריץ רק את השאילתה זה מציג לי את התאריך הנכון 
-next_run_date
-2026-11-06
+USE msdb;
 
-אבל המייל שנשלח זה על תאריך  אחר מראה לי בתצוגה : 
-09-10-2026
-
-זה צריך להראות את התאריך הבא שירוץ  ברגע שיש שינוי שם זה שולח מייל לבד זה הקוד: 
-
-use msdb
-if OBJECT_ID('tempdb..#tb_sysjobschedules_PSRS')is not null
-       drop table #tb_sysjobschedules_PSRS
-
-select  
-distinct
-	sysschedules.date_modified as 'date_modified'
-	,sysjobs.name job_name
-	,case when sysjobs.enabled=1 then 'enabled' 
-		else 'not_enabled'  end as 'job_enabled'
-	,case when sysschedules.enabled=1 then 'enabled' 
-		else 'not_enabled'  end as 'schedule_enabled'
-	,sysschedules.name schedule_name,
-	LEFT (left (RIGHT('0'+CAST( sysjobschedules.next_run_time AS  VARCHAR(6)),6),4),2)++':'+
-	right (left (RIGHT('0'+CAST( sysjobschedules.next_run_time AS  VARCHAR(6)),6),4),2) as 'next_run_time' ,
-	left (sysjobschedules.next_run_date,4)+'-'+ right ((left (sysjobschedules.next_run_date,6)),2)+'-'+ right (sysjobschedules.next_run_date,2) as 'next_run_date'
-	
-	into #tb_sysjobschedules_PSRS
-	from msdb.dbo.sysjobs
- 
-	inner join msdb.dbo.sysjobschedules on sysjobs.job_id = sysjobschedules.job_id
-	inner join msdb.dbo.sysschedules on sysjobschedules.schedule_id = sysschedules.schedule_id
-	where  
-	sysschedules.date_modified >= CONVERT(char(10),GetDate(),126) 
-	order by sysjobs.name asc,sysschedules.date_modified desc
-
-if @@ROWCOUNT>0
-begin 
-
-DECLARE @MAIL_BODY VARCHAR(max)
-
-/* HEADER */
-SET @MAIL_BODY =
-'<style type = "text/css">
-    .tg1 {border-collapse:collapse;border-color:#9ABAD9;border-spacing:0}
-    .tg1 td{background-color:#EBF5FF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#444;font-family:consolas;font-size:14px;padding:2px 2px}
-    .tg1 th{background-color:#409CFF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#fff;font-family:consolas;font-size:14px;padding:2px 2px}
-  </style>'+
-   '<head><meta charset="utf-8"><div dir="rtl"></div></head><BR><center><table class="tg1">' +
-    '<tr>
-		<th>date_modified</th>
-		<th>job_name</th>
-		<th>job_enabled</th>
-		<th>schedule_enabled</th>
-		<th>schedule_name</th>
-		<th>next_run_time</th>
-		<th>next_run_date</th>
-    </tr>'
-
-/* ROWS */
-SELECT 
-    @MAIL_BODY = @MAIL_BODY +
-    '<tr>' +
-		'<td>' + cast([date_modified] as varchar(30)) + '</td>' +
-		'<td>' + [job_name]+ '</td>' +
-		'<td>' + [job_enabled] + '</td>' +
-		'<td>' + [schedule_enabled] + '</td>' +
-		'<td>' + [schedule_name] + '</td>' +
-		'<td>' + [next_run_time] + '</td>' +
-		'<td>' + [next_run_date] + '</td>' +
-    '</tr>'
-FROM #tb_sysjobschedules_PSRS
-order by job_name
-
-
-SELECT @MAIL_BODY = @MAIL_BODY + '</table></center>'
-
-
--- get mail details
-declare @Receipt as nvarchar(1000)
-set @Receipt =(select Recipients 
- from psql.generix_staging.dbo.SupportMailRecipients
-where SSIS_ID=85)
-
-declare @ReceiptCopy as nvarchar(1000)
-set @ReceiptCopy =(select isnull(CopyRecipients,'')
-from psql.generix_staging.dbo.SupportMailRecipients
-where SSIS_ID=85)
-
-declare @MSubject as nvarchar(1000)
-set @MSubject =(select MailSubject 
- from psql.generix_staging.dbo.SupportMailRecipients
-where SSIS_ID=85)
-
-declare @SSIS as nvarchar(1000)
-set @SSIS =(select SSIS_Name
- from psql.generix_staging.dbo.SupportMailRecipients
-where SSIS_ID=85)
-
-declare @Msg as nvarchar(max)
-set @Msg= @MAIL_BODY + '<br>' + '<br>' + @SSIS
-
-EXEC  msdb.dbo.sp_send_dbmail  
-    @profile_name = 'dbmail',  
-       @from_address ='liba@altshul.co.il',  
-       @recipients = @Receipt,
-       @execute_query_database = [ALTSHULER_MSCRM],
-       @query_result_header = 1 ,
-	   @body = @Msg,
-       @subject = @MSubject , 
-       @body_format='HTML'
-end
-
-
+SELECT
+    j.name AS job_name,
+    s.name AS schedule_name,
+    s.date_modified,
+    s.active_start_date,
+    s.active_start_time,
+    js.next_run_date,
+    js.next_run_time,
+    GETDATE() AS check_time
+FROM dbo.sysjobs j
+JOIN dbo.sysjobschedules js
+    ON j.job_id = js.job_id
+JOIN dbo.sysschedules s
+    ON js.schedule_id = s.schedule_id
+WHERE s.date_modified >= CONVERT(date, GETDATE())
+ORDER BY s.date_modified DESC;
