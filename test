@@ -1,359 +1,104 @@
-using System;
-using System.IO;
-using System.Text;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Windows.Forms;
-using System.Drawing;
+ה next_run_date לא מדוייק למה ששונה. 
+זה הקוד: 
+use msdb
+if OBJECT_ID('tempdb..#tb_sysjobschedules_PSRS')is not null
+       drop table #tb_sysjobschedules_PSRS
 
-namespace PhoneExtractorApp
-{
-    internal static class Program
-    {
-        [STAThread]
-        static void Main()
-        {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new ExtractionForm());
-        }
-    }
+select  
+distinct
+	sysschedules.date_modified as 'date_modified'
+	,sysjobs.name job_name
+	,case when sysjobs.enabled=1 then 'enabled' 
+		else 'not_enabled'  end as 'job_enabled'
+	,case when sysschedules.enabled=1 then 'enabled' 
+		else 'not_enabled'  end as 'schedule_enabled'
+	,sysschedules.name schedule_name,
+	LEFT (left (RIGHT('0'+CAST( sysjobschedules.next_run_time AS  VARCHAR(6)),6),4),2)++':'+
+	right (left (RIGHT('0'+CAST( sysjobschedules.next_run_time AS  VARCHAR(6)),6),4),2) as 'next_run_time' ,
+	left (sysjobschedules.next_run_date,4)+'-'+ right ((left (sysjobschedules.next_run_date,6)),2)+'-'+ right (sysjobschedules.next_run_date,2) as 'next_run_date'
+	
+	into #tb_sysjobschedules_PSRS
+	from msdb.dbo.sysjobs
+ 
+	inner join msdb.dbo.sysjobschedules on sysjobs.job_id = sysjobschedules.job_id
+	inner join msdb.dbo.sysschedules on sysjobschedules.schedule_id = sysschedules.schedule_id
+	where  
+	sysschedules.date_modified >= CONVERT(char(10),GetDate(),126) 
+	order by sysjobs.name asc,sysschedules.date_modified desc
 
-    public class ExtractionForm : Form
-    {
-        private TextBox txtFolderInput;
-        private ComboBox cmbFiles;
-        private TextBox txtOutputFolderInput;
-        private Button btnBrowseOutput;
-        private TextBox txtSearchValue;
-        private ListBox lstRequests;
-        private Button btnExtract;
-        private Button btnScan;
-        private Button btnAdd;
-        private Button btnRemove;
+if @@ROWCOUNT>0
+begin 
 
-        private ProgressBar prgStatus;
-        private Label lblProgressText;
-        private Label lblCredit;
+DECLARE @MAIL_BODY VARCHAR(max)
 
-        private string targetFolder = "";
-        private List<string> searchValues = new List<string>();
+/* HEADER */
+SET @MAIL_BODY =
+'<style type = "text/css">
+    .tg1 {border-collapse:collapse;border-color:#9ABAD9;border-spacing:0}
+    .tg1 td{background-color:#EBF5FF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#444;font-family:consolas;font-size:14px;padding:2px 2px}
+    .tg1 th{background-color:#409CFF;border-color:#9ABAD9;border-style:solid;border-width:1px;color:#fff;font-family:consolas;font-size:14px;padding:2px 2px}
+  </style>'+
+   '<head><meta charset="utf-8"><div dir="rtl"></div></head><BR><center><table class="tg1">' +
+    '<tr>
+		<th>date_modified</th>
+		<th>job_name</th>
+		<th>job_enabled</th>
+		<th>schedule_enabled</th>
+		<th>schedule_name</th>
+		<th>next_run_time</th>
+		<th>next_run_date</th>
+    </tr>'
 
-        private Color colorBackground = Color.FromArgb(245, 247, 250);
-        private Color colorPrimary = Color.FromArgb(41, 128, 185);
-        private Color colorPrimaryHover = Color.FromArgb(52, 152, 219);
-        private Color colorSuccess = Color.FromArgb(39, 174, 96);
-        private Color colorSuccessHover = Color.FromArgb(46, 204, 113);
-        private Color colorDanger = Color.FromArgb(192, 57, 43);
-        private Color colorTextDark = Color.FromArgb(44, 62, 80);
-        private Color colorTextMuted = Color.FromArgb(127, 140, 141);
+/* ROWS */
+SELECT 
+    @MAIL_BODY = @MAIL_BODY +
+    '<tr>' +
+		'<td>' + cast([date_modified] as varchar(30)) + '</td>' +
+		'<td>' + [job_name]+ '</td>' +
+		'<td>' + [job_enabled] + '</td>' +
+		'<td>' + [schedule_enabled] + '</td>' +
+		'<td>' + [schedule_name] + '</td>' +
+		'<td>' + [next_run_time] + '</td>' +
+		'<td>' + [next_run_date] + '</td>' +
+    '</tr>'
+FROM #tb_sysjobschedules_PSRS
+order by job_name
 
-        private Font fontRegular = new Font("Segoe UI", 10F, FontStyle.Regular);
-        private Font fontBold = new Font("Segoe UI", 10F, FontStyle.Bold);
-        private Font fontTitle = new Font("Segoe UI", 12F, FontStyle.Bold);
-        private Font fontCredit = new Font("Segoe UI", 9F, FontStyle.Bold | FontStyle.Italic);
 
-        public ExtractionForm()
-        {
-            this.Text = "  מערכת איתור לקוחות מהירה לפי פלאפון - NM Software";
-            this.Size = new Size(580, 710);
-            this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.BackColor = colorBackground;
-            this.RightToLeft = RightToLeft.Yes;
-            this.RightToLeftLayout = true;
+SELECT @MAIL_BODY = @MAIL_BODY + '</table></center>'
 
-            // --- פאנל עליון: בחירת מקור מידע (שלב א') ---
-            GroupBox grpSource = new GroupBox() { Text = " שלב א': בחירת מקור מידע (קריאה) ", Location = new Point(20, 15), Size = new Size(525, 115), Font = fontBold, ForeColor = colorPrimary };
 
-            Label lblFolder = new Label() { Text = "נתיב תיקייה:", Location = new Point(15, 32), Size = new Size(110, 20), Font = fontRegular, ForeColor = colorTextDark };
-            txtFolderInput = new TextBox() { Location = new Point(135, 30), Size = new Size(250, 25), Font = fontRegular, BorderStyle = BorderStyle.FixedSingle };
-            txtFolderInput.Text = @"C:\Users\netanelma\Desktop\extractid";
+-- get mail details
+declare @Receipt as nvarchar(1000)
+set @Receipt =(select Recipients 
+ from psql.generix_staging.dbo.SupportMailRecipients
+where SSIS_ID=85)
 
-            btnScan = new Button() { Text = "סרוק תיקייה", Location = new Point(400, 28), Size = new Size(110, 28), Font = fontBold, BackColor = colorPrimary, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnScan.FlatAppearance.BorderSize = 0;
-            btnScan.Click += btnScan_Click;
+declare @ReceiptCopy as nvarchar(1000)
+set @ReceiptCopy =(select isnull(CopyRecipients,'')
+from psql.generix_staging.dbo.SupportMailRecipients
+where SSIS_ID=85)
 
-            Label lblFile = new Label() { Text = "בחר קובץ מקור:", Location = new Point(15, 72), Size = new Size(110, 20), Font = fontRegular, ForeColor = colorTextDark };
-            cmbFiles = new ComboBox() { Location = new Point(135, 70), Size = new Size(375, 25), Font = fontRegular, DropDownStyle = ComboBoxStyle.DropDownList };
-            cmbFiles.SelectedIndexChanged += (s, e) => ValidateForm();
+declare @MSubject as nvarchar(1000)
+set @MSubject =(select MailSubject 
+ from psql.generix_staging.dbo.SupportMailRecipients
+where SSIS_ID=85)
 
-            grpSource.Controls.AddRange(new Control[] { lblFolder, txtFolderInput, btnScan, lblFile, cmbFiles });
+declare @SSIS as nvarchar(1000)
+set @SSIS =(select SSIS_Name
+ from psql.generix_staging.dbo.SupportMailRecipients
+where SSIS_ID=85)
 
-            // --- פאנל שני: בחירת תיקיית פלט לשמירה (שלב ב') ---
-            GroupBox grpOutput = new GroupBox() { Text = " שלב ב': בחירת מיקום לשמירת קובץ התוצאות (TXT) ", Location = new Point(20, 140), Size = new Size(525, 75), Font = fontBold, ForeColor = colorPrimary };
+declare @Msg as nvarchar(max)
+set @Msg= @MAIL_BODY + '<br>' + '<br>' + @SSIS
 
-            Label lblOutputFolder = new Label() { Text = "נתיב שמירה:", Location = new Point(15, 32), Size = new Size(110, 20), Font = fontRegular, ForeColor = colorTextDark };
-            txtOutputFolderInput = new TextBox() { Location = new Point(135, 30), Size = new Size(250, 25), Font = fontRegular, BorderStyle = BorderStyle.FixedSingle };
-            txtOutputFolderInput.Text = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            txtOutputFolderInput.TextChanged += (s, e) => ValidateForm();
-
-            btnBrowseOutput = new Button() { Text = "בחר תיקייה...", Location = new Point(400, 28), Size = new Size(110, 28), Font = fontBold, BackColor = colorPrimary, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnBrowseOutput.FlatAppearance.BorderSize = 0;
-            btnBrowseOutput.Click += BtnBrowseOutput_Click;
-
-            grpOutput.Controls.AddRange(new Control[] { lblOutputFolder, txtOutputFolderInput, btnBrowseOutput });
-
-            // --- פאנל שלישי: הזנת פלאפון (שלב ג') ---
-            GroupBox grpAdd = new GroupBox() { Text = " שלב ג': הזנת מספרי פלאפון לאיתור ", Location = new Point(20, 225), Size = new Size(525, 85), Font = fontBold, ForeColor = colorPrimary };
-
-            Label lblValue = new Label() { Text = "מספר פלאפון:", Location = new Point(15, 37), Size = new Size(105, 20), Font = fontRegular, ForeColor = colorTextDark };
-            txtSearchValue = new TextBox() { Location = new Point(130, 35), Size = new Size(300, 25), Font = fontRegular, BorderStyle = BorderStyle.FixedSingle };
-            txtSearchValue.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) { BtnAdd_Click(s, e); e.SuppressKeyPress = true; } };
-
-            btnAdd = new Button() { Text = "הוסף", Location = new Point(450, 33), Size = new Size(60, 28), Font = fontBold, BackColor = colorPrimary, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnAdd.Click += BtnAdd_Click;
-
-            grpAdd.Controls.AddRange(new Control[] { lblValue, txtSearchValue, btnAdd });
-
-            // --- פאנל תחתון: רשימה, חיווי וקרדיט ---
-            Label lblList = new Label() { Text = "רשימת מספרי הפלאפון שמחפשים בקובץ:", Location = new Point(20, 320), Size = new Size(300, 20), Font = fontBold, ForeColor = colorTextDark };
-            lstRequests = new ListBox() { Location = new Point(20, 345), Size = new Size(525, 120), Font = fontRegular, BorderStyle = BorderStyle.FixedSingle, ItemHeight = 20 };
-
-            btnRemove = new Button() { Text = "مחק מספר מסומן", Location = new Point(20, 475), Size = new Size(140, 28), Font = fontBold, BackColor = Color.White, ForeColor = colorDanger, FlatStyle = FlatStyle.Flat };
-            btnRemove.Click += BtnRemove_Click;
-
-            lblProgressText = new Label() { Text = "מוכן לעבודה.", Location = new Point(180, 479), Size = new Size(365, 20), Font = fontRegular, ForeColor = colorTextMuted };
-            prgStatus = new ProgressBar() { Location = new Point(20, 515), Size = new Size(525, 18), Style = ProgressBarStyle.Continuous };
-
-            btnExtract = new Button() { Text = "הפעל סריקה ויצירת קובץ טקסט", Location = new Point(145, 550), Size = new Size(290, 45), Font = fontTitle, BackColor = colorSuccess, ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            btnExtract.Click += BtnExtract_Click;
-
-            lblCredit = new Label() { Text = "© Created by NM Software | 2026", Location = new Point(20, 630), Size = new Size(525, 25), Font = fontCredit, ForeColor = colorTextMuted, TextAlign = ContentAlignment.MiddleCenter };
-
-            this.Controls.AddRange(new Control[] { grpSource, grpOutput, grpAdd, lblList, lstRequests, btnRemove, lblProgressText, prgStatus, btnExtract, lblCredit });
-
-            try { RefreshFiles(); } catch { }
-            ValidateForm();
-        }
-
-        private void BtnBrowseOutput_Click(object sender, EventArgs e)
-        {
-            using (FolderBrowserDialog fbd = new FolderBrowserDialog())
-            {
-                fbd.Description = "בחר את התיקייה שבה יישמר קובץ התוצאות";
-                if (fbd.ShowDialog() == DialogResult.OK)
-                {
-                    txtOutputFolderInput.Text = fbd.SelectedPath;
-                }
-            }
-        }
-        private void btnScan_Click(object sender, EventArgs e)
-        {
-            RefreshFiles();
-        }
-
-        private void RefreshFiles()
-        {
-            try
-            {
-                cmbFiles.Items.Clear();
-                targetFolder = txtFolderInput.Text.Trim();
-
-                if (Directory.Exists(targetFolder))
-                {
-                    string[] files = Directory.GetFiles(targetFolder, "*");
-                    foreach (string file in files) cmbFiles.Items.Add(Path.GetFileName(file));
-                    if (cmbFiles.Items.Count > 0) cmbFiles.SelectedIndex = 0;
-                }
-                else
-                {
-                    MessageBox.Show("נתיב תיקיית המקור שהזנת אינו קיים בדיסק!", "נתיב שגוי", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("שגיאה בסריקת התיקייה:\n" + ex.Message, "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            ValidateForm();
-        }
-
-        // אירוע הוספת מספר פלאפון לרשימת החיפוש
-        private void BtnAdd_Click(object sender, EventArgs e)
-        {
-            string rawVal = txtSearchValue.Text.Trim();
-            string cleanVal = Regex.Replace(rawVal, @"[^\d]", "");
-
-            if (string.IsNullOrEmpty(cleanVal))
-            {
-                MessageBox.Show("אנא הזן מספר פלאפון תקין לחיפוש (המכיל ספרות).", "שדה ריק", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (searchValues.Contains(cleanVal))
-            {
-                MessageBox.Show("המספר הזה כבר קיים ברשימת החיפוש שלך.", "ערך כפול", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return;
-            }
-
-            searchValues.Add(cleanVal);
-            lstRequests.Items.Add($"📞 מחפש פלאפון: {rawVal}");
-
-            txtSearchValue.Text = "";
-            txtSearchValue.Focus();
-            ValidateForm();
-        }
-
-        // אירוע מחיקת מספר מסומן מהרשימה
-        private void BtnRemove_Click(object sender, EventArgs e)
-        {
-            if (lstRequests.SelectedIndex != -1)
-            {
-                int index = lstRequests.SelectedIndex;
-                searchValues.RemoveAt(index);
-                lstRequests.Items.RemoveAt(index);
-                ValidateForm();
-            }
-        }
-
-        // בדיקה האם לאפשר את כפתור ההפעלה
-        private void ValidateForm()
-        {
-            btnExtract.Enabled = (cmbFiles.SelectedIndex != -1 &&
-                                  searchValues.Count > 0 &&
-                                  !string.IsNullOrEmpty(txtOutputFolderInput.Text.Trim()));
-
-            if (btnExtract.Enabled)
-            {
-                btnExtract.BackColor = colorSuccess;
-                btnExtract.Cursor = Cursors.Hand;
-            }
-            else
-            {
-                btnExtract.BackColor = Color.FromArgb(189, 195, 199);
-                btnExtract.Cursor = Cursors.No;
-            }
-        }
-
-        // אירוע סריקת הקובץ וכתיבה לנתיב השמירה שנבחר ידנית במחשב
-        private void BtnExtract_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (cmbFiles.SelectedIndex == -1) return;
-
-                string selectedFileName = cmbFiles.SelectedItem.ToString();
-                string sourcePath = Path.Combine(targetFolder, selectedFileName);
-
-                if (!File.Exists(sourcePath))
-                {
-                    MessageBox.Show("קובץ המקור לא נמצא פיזית בדיסק!", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                string outputFolder = txtOutputFolderInput.Text.Trim();
-                if (!Directory.Exists(outputFolder))
-                {
-                    MessageBox.Show("נתיב השמירה שבחרת לא קיים במחשב!", "שגיאה", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return;
-                }
-
-                string outputPath = Path.Combine(outputFolder, "search_results_notepad.txt");
-                int matchCount = 0;
-
-                btnExtract.Enabled = false;
-                btnScan.Enabled = false;
-                btnBrowseOutput.Enabled = false;
-                btnAdd.Enabled = false;
-                btnRemove.Enabled = false;
-
-                Encoding hebrewEncoding = Encoding.GetEncoding(1255);
-
-                long totalBytes = new FileInfo(sourcePath).Length;
-                long bytesRead = 0;
-
-                using (var reader = new StreamReader(sourcePath, hebrewEncoding))
-                using (var writer = new StreamWriter(outputPath, false, hebrewEncoding))
-                {
-                    string line;
-                    int lineNo = 0;
-                    int updateCounter = 0;
-
-                    while ((line = reader.ReadLine()) != null)
-                    {
-                        lineNo++;
-                        updateCounter++;
-
-                        bytesRead += hebrewEncoding.GetByteCount(line) + 2;
-
-                        if (string.IsNullOrWhiteSpace(line)) continue;
-
-                        bool isMatch = false;
-                        foreach (string val in searchValues)
-                        {
-                            if (line.IndexOf(val, StringComparison.OrdinalIgnoreCase) >= 0)
-                            {
-                                isMatch = true;
-                                break;
-                            }
-                        }
-
-                        if (!isMatch)
-                        {
-                            char[] cleanChars = new char[line.Length];
-                            int charCount = 0;
-                            for (int i = 0; i < line.Length; i++)
-                            {
-                                if (line[i] >= '0' && line[i] <= '9')
-                                {
-                                    cleanChars[charCount++] = line[i];
-                                }
-                            }
-                            string cleanLine = new string(cleanChars, 0, charCount);
-
-                            foreach (string val in searchValues)
-                            {
-                                if (cleanLine.Contains(val))
-                                {
-                                    isMatch = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (isMatch)
-                        {
-                            writer.WriteLine(line);
-                            matchCount++;
-                        }
-
-                        if (updateCounter >= 5000)
-                        {
-                            updateCounter = 0;
-                            int progressPercent = (int)((bytesRead * 100) / totalBytes);
-                            if (progressPercent > 100) progressPercent = 100;
-
-                            prgStatus.Value = progressPercent;
-                            lblProgressText.Text = $"סורק שורה {lineNo:N0}... ({progressPercent}%) | נמצאו: {matchCount}";
-
-                            Application.DoEvents();
-                        }
-                    }
-
-                    prgStatus.Value = 100;
-                    lblProgressText.Text = $"הסתיים בהצלחה! חולצו {matchCount} שורות.";
-                }
-
-                MessageBox.Show($"🎉 החילוץ לפנקס רשימות הסתיים בהצלחה!\n\nנמצאו וחולצו {matchCount} שורות מלאות.\nהקובץ החדש מחכה לך בנתיב המבוקש:\n{outputPath}", "הצלחה - NM Software", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
-                btnExtract.Enabled = true;
-                btnScan.Enabled = true;
-                btnBrowseOutput.Enabled = true;
-                btnAdd.Enabled = true;
-                btnRemove.Enabled = true;
-                ValidateForm();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("שגיאה במהלך סריקת הקובץ:\n" + ex.Message, "שגיאה חמורה", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                btnExtract.Enabled = true;
-                btnScan.Enabled = true;
-                btnBrowseOutput.Enabled = true;
-                btnAdd.Enabled = true;
-                btnRemove.Enabled = true;
-                ValidateForm();
-            }
-        }
-    }
-}
+EXEC  msdb.dbo.sp_send_dbmail  
+    @profile_name = 'dbmail',  
+       @from_address ='liba@altshul.co.il',  
+       @recipients = @Receipt,
+       @execute_query_database = [ALTSHULER_MSCRM],
+       @query_result_header = 1 ,
+	   @body = @Msg,
+       @subject = @MSubject , 
+       @body_format='HTML'
+end
