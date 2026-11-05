@@ -1,18 +1,1 @@
-USE msdb;
-
-SELECT
-    j.name AS job_name,
-    s.name AS schedule_name,
-    s.date_modified,
-    s.active_start_date,
-    s.active_start_time,
-    js.next_run_date,
-    js.next_run_time,
-    GETDATE() AS check_time
-FROM dbo.sysjobs j
-JOIN dbo.sysjobschedules js
-    ON j.job_id = js.job_id
-JOIN dbo.sysschedules s
-    ON js.schedule_id = s.schedule_id
-WHERE s.date_modified >= CONVERT(date, GETDATE())
-ORDER BY s.date_modified DESC;
+זה מראה טוב אבל גם הקודם מראה לי טוב, רק במייל שנשלח בטבלה התאריך לא נכון .. 
