@@ -1,13 +1,10 @@
-שלב 2: קוד להעתקה (באתר הדיווח הראשון)
+קוד 1: העתקה (באתר הדיווח הראשון)
 
-פתחו את הדף עם טבלת השעות והריצו:
+שמרו כסימנייה והדביקו בשדה הכתובת (URL):
 
-(async()=>{const out=[];document.querySelectorAll('tr[id$="uxMainDivuhItemsTR"]').forEach(r=>{const g=s=>r.querySelector('[id$="'+s+'"]');const d=g('uxReferenceDate'),i=g('uxEditingInTime'),o=g('uxEditingOutTime');if(!d||!i||!o||!i.value||!o.value)return;const[dd,mm,yy]=d.value.split(' ')[0].split('/');out.push({date:yy+'-'+mm+'-'+dd,in:i.value,out:o.value});});const t=JSON.stringify(out);try{await navigator.clipboard.writeText(t);alert('הועתקו '+out.length+' ימים')}catch(e){prompt('העתיקו את הטקסט (Ctrl+C):',t)}})();
+javascript:(()=>{let o=[];document.querySelectorAll('[id$=uxEditingInTime]').forEach(i=>{let b=i.id.replace('EditingInTime',''),e=document.getElementById(b+'EditingOutTime').value;i.value&&e&&o.push(document.getElementById(b+'ReferenceDate').value.slice(0,10).split('/').reverse().join('-')+' '+i.value+' '+e)});navigator.clipboard.writeText(o.join());alert(o.length)})()
 
-תופיע הודעה עם מספר הימים שהועתקו. אם הדפדפן לא מאפשר העתקה אוטומטית, יקפוץ חלון עם טקסט, ואז פשוט מסמנים אותו ולוחצים Ctrl+C.
+בלחיצה תופיע הודעה עם מספר הימים שהועתקו.
 
-שלב 3: קוד להדבקה (באתר השני)
-
-עברו ללשונית של דף השעות השני והריצו:
-
-(async()=>{let t;try{t=await navigator.clipboard.readText()}catch(e){t=prompt('הדביקו כאן (Ctrl+V):')}const data=JSON.parse(t);let n=0;data.forEach(x=>{const day=document.querySelector('input[fieldname="day"][value="'+x.date+'"]');if(!day)return;const k=day.id.split('_')[1];const[ih,im]=x.in.split(':'),[oh,om]=x.out.split(':');const set=(nm,v)=>{const e=document.getElementsByName(nm)[0];if(e){e.value=v;e.dispatchEvent(new Event('change',{bubbles:true}))}};set('time_start_1_HH_'+k,ih);set('time_start_1_MM_'+k,im);set('time_end_1_HH_'+k,oh);set('time_end_1_MM_'+k,om);n++});alert('מולאו '+n+' ימים מתוך '+data.length)})();
+קוד 2: הדבקה (באתר השני)
+javascript:(async()=>{let t=await navigator.clipboard.readText(),n=0;t.split(',').forEach(x=>{let[d,i,o]=x.split(' '),y=document.querySelector('[fieldname=day][value="'+d+'"]');if(!y)return;let k=y.id.split('_')[1],s=(a,v)=>{let e=document.getElementsByName(a+k)[0];e.value=v;e.dispatchEvent(new Event('change'))};s('time_start_1_HH_',i.slice(0,2));s('time_start_1_MM_',i.slice(3));s('time_end_1_HH_',o.slice(0,2));s('time_end_1_MM_',o.slice(3));n++});alert(n)})()
