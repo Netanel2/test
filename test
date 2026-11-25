@@ -1,10 +1,10 @@
-קוד 1: העתקה (באתר הדיווח הראשון)
+קוד 1: העתקה (באתר הראשון)
 
-שמרו כסימנייה והדביקו בשדה הכתובת (URL):
+פתחו F12, לשונית Console, הדביקו ולחצו Enter:
 
-javascript:(()=>{let o=[];document.querySelectorAll('[id$=uxEditingInTime]').forEach(i=>{let b=i.id.replace('EditingInTime',''),e=document.getElementById(b+'EditingOutTime').value;i.value&&e&&o.push(document.getElementById(b+'ReferenceDate').value.slice(0,10).split('/').reverse().join('-')+' '+i.value+' '+e)});navigator.clipboard.writeText(o.join());alert(o.length)})()
+(()=>{let o=[],d;document.querySelectorAll('[id$=uxEditingInTime]').forEach(i=>{let b=i.id.replace('EditingInTime',''),e=document.getElementById(b+'EditingOutTime').value,r=document.getElementById(b+'ReferenceDate');r&&(d=r.value.slice(0,10).split('/').reverse().join('-'));i.value&&e&&o.push(d+' '+i.value+' '+e)});let s=o.join();navigator.clipboard.writeText(s).catch(_=>prompt('Ctrl+C',s));alert(o.length)})()
 
-בלחיצה תופיע הודעה עם מספר הימים שהועתקו.
+ההודעה תציג את מספר הדיווחים שהועתקו. אם יש ימים עם שני דיווחים, המספר יהיה גדול ממספר הימים.
 
 קוד 2: הדבקה (באתר השני)
-javascript:(async()=>{let t=await navigator.clipboard.readText(),n=0;t.split(',').forEach(x=>{let[d,i,o]=x.split(' '),y=document.querySelector('[fieldname=day][value="'+d+'"]');if(!y)return;let k=y.id.split('_')[1],s=(a,v)=>{let e=document.getElementsByName(a+k)[0];e.value=v;e.dispatchEvent(new Event('change'))};s('time_start_1_HH_',i.slice(0,2));s('time_start_1_MM_',i.slice(3));s('time_end_1_HH_',o.slice(0,2));s('time_end_1_MM_',o.slice(3));n++});alert(n)})()
+(async()=>{let t=await navigator.clipboard.readText().catch(_=>prompt('Ctrl+V')),n=0,c={};t.split(',').forEach(x=>{let[d,i,o]=x.split(' '),y=document.querySelector('[fieldname=day][value="'+d+'"]');if(!y)return;let p=c[d]=(c[d]||0)+1;if(p>4)return;let k=y.id.split('_')[1],s=(a,b,v)=>{let e=document.getElementsByName('time_'+a+'_'+p+'_'+b+'_'+k)[0];e.value=v;e.dispatchEvent(new Event('change'))};s('start','HH',i.slice(0,2));s('start','MM',i.slice(3));s('end','HH',o.slice(0,2));s('end','MM',o.slice(3));n++});alert(n)})()
