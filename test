@@ -1,26 +1,22 @@
-</style>
-</head>
-<body>
-<header class="hero">
- <div class="brand">
-  <div class="crest" aria-label="Manchester United"><div class="crest-fallback"><b>MU</b><small>UNITED</small></div><img src="https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg" alt="סמל מנצ'סטר יונייטד" onerror="this.style.display='none'"></div>
-  <div><div class="eyebrow">MANCHESTER UNITED · RED DEVILS</div><h1>פורטל שאילתות – מערכות מידע</h1><p>שאילתות לפי תיקיות מקור · חיפוש, צפייה והורדת קבצים ללא שינוי</p></div>
-  <div class="hero-side"><span class="hero-pill">🔒 צפייה בלבד · ללא הרצת SQL</span></div>
- </div>
- <div class="overview" id="stats"></div>
-</header>
-<div class="workspace">
- <aside class="sidebar" aria-label="ניווט תיקיות"><div class="side-title">גישה מהירה וניווט לפי תיקיות</div><div class="navlist" id="categories"></div><p class="side-hint">⭐ מועדפים וקבצים שנצפו לאחרונה נשמרים בדפדפן, ככל שהדפדפן מאפשר.</p><div class="quiet-signature" aria-label="קרדיט">יבגני קרייזמן</div></aside>
- <section class="library" aria-label="רשימת קבצים">
-  <h2 class="section-title">מאגר השאילתות</h2>
-  <div class="search-area"><span class="search-icon" aria-hidden="true">⌕</span><input id="search" class="search-box" type="search" autocomplete="off" placeholder="חיפוש שאילתה, טבלה, תוכן או שם תיקייה..." aria-label="חיפוש"><span class="shortcut">Ctrl K</span></div>
-  <div class="filters">
-   
-   <select id="type" aria-label="סינון לפי סוג קובץ"><option value="all">כל סוגי הקבצים</option><option value="SQL">SQL (349)</option><option value="7Z">7Z (1)</option><option value="DOCX">DOCX (3)</option><option value="MSG">MSG (2)</option><option value="TXT">TXT (36)</option><option value="XLSX">XLSX (2)</option><option value="XML">XML (5)</option></select>
-   </div>
-  <div class="subtools"><button id="favToggle" type="button" class="small-btn">☆ רק מועדפים</button><button id="clear" type="button" class="small-btn">איפוס סינון ✕</button><span id="results" class="results" aria-live="polite"></span></div>
-  <div id="list" class="list" aria-label="קבצים"></div>
- </section>
- <main class="viewer" id="viewer"><div class="welcome"><div class="welcome-icon">⌘</div><h2>בחרו קובץ מהרשימה</h2><p>תוכלו לעיין, לחפש, להעתיק ולהוריד קבצים כפי שהופיעו בארכיון המקורי. אין אפשרות לערוך או להריץ קוד.</p></div></main>
-</div>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+אני כל הזמן לוקח את זה: 
+	use ALTSHULER_MSCRM
+	select  name,count(*)  as count  , min (dateadd (hh,2,(CreatedOn))) as 'min (CreatedOn)', 
+	--, StateCode,
+	 max (dateadd(hh,2,(CreatedOn))) as 'max (CreatedOn)',sum (datalength(data)) as "sum (datalength(data))"
+	from AsyncOperation with(nolock)
+	where  --name='Generix.PlugIn.Email.Email: Create of email'
+	 StateCode=2
+	 group by name
+	 --,StateCode
+	-- having count (*)>1
+	 order by count (*) desc
+
+רואה שיש תוצאה ב NAME ואז מחכים כמה דקות רואים שזה עדיין מציג את ה NAME 
+אם עברו כמה דקות לוקחים את ה NAME ושמים פה: name
+-- update  AsyncOperation
+	-- set StateCode='0' , StatusCode='10'   --להפעלה
+	--set StateCode='3' , StatusCode='31'   --לביטול
+	-- where StateCode='2' and
+	--  name='GeneriX.AltGemel.PensionJoiningPlugin.PensionJoiningPlugin: Async Update of gen_pensionjoining'
+
+ומריצים וזה מסתדר, איך אפשר לעשות את זה אוטומט ב SSIS? 
