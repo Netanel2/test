@@ -1,22 +1,10 @@
-אני כל הזמן לוקח את זה: 
-	use ALTSHULER_MSCRM
-	select  name,count(*)  as count  , min (dateadd (hh,2,(CreatedOn))) as 'min (CreatedOn)', 
-	--, StateCode,
-	 max (dateadd(hh,2,(CreatedOn))) as 'max (CreatedOn)',sum (datalength(data)) as "sum (datalength(data))"
-	from AsyncOperation with(nolock)
-	where  --name='Generix.PlugIn.Email.Email: Create of email'
-	 StateCode=2
-	 group by name
-	 --,StateCode
-	-- having count (*)>1
-	 order by count (*) desc
+למה האתריך הפוך בשני ולא כמו בראשון? 
 
-רואה שיש תוצאה ב NAME ואז מחכים כמה דקות רואים שזה עדיין מציג את ה NAME 
-אם עברו כמה דקות לוקחים את ה NAME ושמים פה: name
--- update  AsyncOperation
-	-- set StateCode='0' , StatusCode='10'   --להפעלה
-	--set StateCode='3' , StatusCode='31'   --לביטול
-	-- where StateCode='2' and
-	--  name='GeneriX.AltGemel.PensionJoiningPlugin.PensionJoiningPlugin: Async Update of gen_pensionjoining'
+<input id="01a9ae5a-ca5e-ef11-8123-00505681f169_notesTitleBox" class="ms-crm-InlineInput notesTitleBox" maxlength="500" type="text" title="ההערה נוצרה ב- 20/08/2024 11:01:09 על ידי פרץ אופק " alt="ההערה נוצרה ב- 20/08/2024 11:01:09 על ידי פרץ אופק " aria-label="כותרת" onkeydown="if (event.keyCode==46 || event.keyCode==127){ var domEvent=new Sys.UI.DomEvent(event); domEvent.stopPropagation();} else if (event.keyCode==13 &amp;&amp; event.shiftKey ){ dispatchNoteCommand(this, 'post', '01a9ae5a-ca5e-ef11-8123-00505681f169'); return false;} else if(event.keyCode==9){dispatchNoteCommand(this, 'onblur', '01a9ae5a-ca5e-ef11-8123-00505681f169');}" onfocus="dispatchNoteCommand(this, 'edit', '01a9ae5a-ca5e-ef11-8123-00505681f169');return false;" value="ההערה נוצרה ב- 20/08/2024 11:01:09 על ידי פרץ אופק " tabindex="-1" watermarktext="כותרת">
 
-ומריצים וזה מסתדר, איך אפשר לעשות את זה אוטומט ב SSIS? 
+
+לבין זה 
+
+<div class="auditInformation" title="נוצר על-ידי פרץ אופק 8/20/2024 11:01:09 AM
+נערך לאחרונה על-ידי פרץ אופק 8/20/2024 11:01:09 AM" alt="נוצר על-ידי פרץ אופק 8/20/2024 11:01:09 AM
+נערך לאחרונה על-ידי פרץ אופק 8/20/2024 11:01:09 AM"> <div id="01a9ae5a-ca5e-ef11-8123-00505681f169_userName" class="userName"><a href="#" onclick="Wall.Control.Utils.WindowUtils.openObject(8,'27e45271-6471-ed11-8162-000c299666b1'); return false;" title="פרץ אופק" tabindex="1840">פרץ אופק</a></div>&nbsp;-&nbsp; <span class="posted">8/20/2024 11:01:09 AM</span> </div>
